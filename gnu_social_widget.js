@@ -1,3 +1,11 @@
+/**
+* GNU Social Widget, copyright (C)2018 Nicholas Killewald
+* https://github.com/CaptainSpam/gswidget
+*
+* This file is distributed under the terms of the MIT License,
+* a copy of which can be found in the repository listed above.
+*/
+
 // We need an Atom feed URL to make this work at all.  Add that in here.
 var atomUrl = "";
 // This is the ID of the <div> element in which we're putting this.
