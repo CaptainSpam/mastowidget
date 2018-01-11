@@ -350,6 +350,10 @@ function setMode(base, modeString)
         base.find(".gsw_loading").toggle(true);
         base.find(".gsw_mainblock").toggle(false);
         base.find(".gsw_error").toggle(false);
+
+
+        // Thanks to CSS oddities I haven't quite figured out yet, we need to do
+        // this for loading and error so it shows up properly.
     }
     else if(modeString == "display")
     {
@@ -412,7 +416,26 @@ function showAllPosts(base)
                 curElem.append(aElem);
                 entryElem.append(curElem);
 
-                // TODO: Add in-reply-to data here!
+                // We don't really get all the data we need to make a full,
+                // clean "in reply to <USER>..." string here.  Until we can get
+                // that, we'll settle for "(part of a conversation)" and link to
+                // it on the local server.  Remember, "conversation" should
+                // always exist.  in-reply-to is the one that tells us this is a
+                // reply to something.
+                //
+                // TODO: Once we can generate "in reply to <USER>...", rewrite
+                // this to link back to THAT post, not the local conversation.
+                if("in-reply-to" in data)
+                {
+                    curElem = $(document.createElement("div"));
+                    curElem.addClass("gsw_in_reply_to");
+
+                    aElem = $(document.createElement("a"));
+                    aElem.attr("href", data["conversation"]);
+                    aElem.text("(part of a conversation)");
+                    curElem.append(aElem);
+                    entryElem.append(curElem);
+                }
 
                 // Get the content and paste that in, too.  This may need more
                 // careful analysis later; as it stands, content comes in as

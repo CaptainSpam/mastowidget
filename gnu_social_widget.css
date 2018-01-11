@@ -63,21 +63,24 @@
 }
 
 .gsw_useratname a,
-.gsw_entry_date a
+.gsw_entry_date a,
+.gsw_in_reply_to a
 {
     text-decoration:none;
     color:black;
 }
 
 .gsw_useratname a:hover,
-.gsw_entry_date a:hover
+.gsw_entry_date a:hover,
+.gsw_in_reply_to a:hover
 {
     color:#505050;
     text-decoration:underline;
 }
 
 .gsw_useratname a:active,
-.gsw_entry_date a:active
+.gsw_entry_date a:active,
+.gsw_in_reply_to a:active
 {
     color:#700000;
     text-decoration:underline;
@@ -117,10 +120,11 @@
     margin-bottom:4px;
 }
 
-.gsw_entry_date a
+.gsw_in_reply_to
 {
-    text-decoration:none;
-    color:black;
+    font-size:smaller;
+    font-style:italic;
+    margin-bottom:4px;
 }
 
 .gsw_entry_content
