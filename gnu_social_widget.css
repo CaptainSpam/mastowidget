@@ -1,0 +1,129 @@
+.gsw_container
+{
+    background-color:#63e3ff;
+    width:400px;
+    min-height:500px;
+    color:black;
+    display:inline-flex;
+    float:left;
+    visibility:hidden;
+    align-items:center;
+    justify-content:center;
+    -webkit-align-items:center;
+    -webkit-justify-content:center;
+}
+
+.gsw_loading, .gsw_error
+{
+}
+
+.gsw_mainblock
+{
+    display:flex;
+    flex-flow:column;
+}
+
+.gsw_userblock
+{
+    width:400px;
+    margin-bottom:4px;
+    clear:both;
+}
+
+.gsw_avatar
+{
+    width:96px;
+    height:96px;
+    border:2px solid black;
+    float:left;
+    margin:4px;
+    clear:none;
+    background-color:#63e3ff;
+    background-size:contain;
+}
+
+.gsw_userinfo
+{
+    width:284px;
+    margin:4px;
+    float:left;
+}
+
+.gsw_userdisplayname
+{
+    font-size:larger;
+    font-weight:bold;
+}
+
+.gsw_useratname
+{
+    font-size:smaller;
+    font-style:italic;
+    margin-top:4px;
+}
+
+.gsw_useratname a,
+.gsw_entry_date a
+{
+    text-decoration:none;
+    color:black;
+}
+
+.gsw_useratname a:hover,
+.gsw_entry_date a:hover
+{
+    color:#505050;
+    text-decoration:underline;
+}
+
+.gsw_useratname a:active,
+.gsw_entry_date a:active
+{
+    color:#700000;
+    text-decoration:underline;
+}
+
+.gsw_summary
+{
+    margin-top:4px;
+}
+
+.gsw_contentblock
+{
+    margin:4px;
+    clear:both;
+    overflow-y:auto;
+    max-height:400px;
+}
+
+.gsw_contentblock > hr
+{
+    height:1px;
+    border:0;
+    background-image:linear-gradient(to right, #00000000, #000000aa, #00000000);
+}
+
+.gsw_entry
+{
+    margin-bottom:8px;
+    margin-left:4px;
+    margin-right:4px;
+}
+
+.gsw_entry_date
+{
+    font-size:smaller;
+    font-weight:bold;
+    margin-bottom:4px;
+}
+
+.gsw_entry_date a
+{
+    text-decoration:none;
+    color:black;
+}
+
+.gsw_entry_content
+{
+
+}
