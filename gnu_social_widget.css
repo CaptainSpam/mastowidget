@@ -47,6 +47,7 @@
     width:284px;
     margin:4px;
     float:left;
+    overflow:hidden;
 }
 
 .gsw_userdisplayname
@@ -97,6 +98,7 @@
     clear:both;
     overflow-y:auto;
     max-height:400px;
+    max-width:400px;
 }
 
 .gsw_contentblock > hr
