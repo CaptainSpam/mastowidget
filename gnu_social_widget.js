@@ -84,7 +84,8 @@ function fetchAtomUrlFromUser()
         if(atomData.length <= 0)
         {
             // Well, there isn't.  Poop.
-            console.log("Couldn't find an Atom feed in " + userUrl + ".  Are you sure that's the right URL?");
+            showError("Couldn't find an Atom feed in the given user URL.  Are you sure that's the right one?");
+            console.error("Couldn't find an Atom feed in the metadata found in " + userUrl + ".");
             return;
         }
         
@@ -92,7 +93,7 @@ function fetchAtomUrlFromUser()
         {
             // If there's more than one, that's bad and not following protocol.
             // But, we'll just go with the first.
-            console.log("WARNING: There's multiple Atom feeds listed in " + userUrl + ".  Ignoring all but the first...");
+            console.warn("There's somehow multiple Atom feeds listed in " + userUrl + ".  Ignoring all but the first...");
         }
 
         atomUrl = atomData.first().attr("href");
@@ -100,13 +101,14 @@ function fetchAtomUrlFromUser()
         if(atomUrl.length <= 0)
         {
             // This means this instance is just completely broken.
-            console.log("Found an Atom feed in " + userUrl + ", but the href in it was empty?  How?");
+            showError("The Atom feed for this user URL can't be found because the data returned appears to be broken somehow.");
+            console.error("Found a link rel element for an Atom feed in " + userUrl + ", but the href in it was empty?  How?");
             return;
         }
 
         // And with that in hand, off we go to getting the data itself!
         fetchAtomData();
-    });
+    }).fail(genericFetchError());
 }
 */
 
@@ -128,7 +130,7 @@ function fetchAtomData()
         // We've got the data and the next, go to fetchNextPosts.  That'll stop
         // if we're done.
         fetchNextPosts(posts, next);
-    });
+    }).fail(genericFetchError);
 }
 
 function fetchNextPosts(posts, next)
@@ -150,7 +152,7 @@ function fetchNextPosts(posts, next)
         var next = xml.find("feed link[rel=next]").attr("href");
         // AGAIN!
         fetchNextPosts(posts, next);
-    });
+    }).fail(genericFetchError);
 }
 
 function extractAuthorData(xml)
@@ -346,6 +348,13 @@ function showError(errorText)
     error.text(errorText);
 }
 
+function genericFetchError(data)
+{
+    // Chances are the browser already dumped an error to console.log in this
+    // case, so we don't need to do that here.
+    showError("There was some sort of problem reading your Atom feed.  If you're sure you typed it in right, maybe that server doesn't allow cross-domain Javascript widgets access to the feed (Mastodon instances in particular might deny access by default)?");
+}
+
 function setMode(base, modeString)
 {
     // Our modes of choice today are:
@@ -495,15 +504,16 @@ $(document).ready(function()
         // Mastodon doesn't appear to publish an RSD in the right place to
         // determine the Atom URL from a server/username combo.  So for now,
         // either the user needs to know their Atom URL or this won't work.
-        console.log("atomUrl isn't defined; you'll need to look that up to use this.");
-        showError("The atomUrl variable isn't defined; you'll need to look that up to use this.");
+        showError("The atomUrl variable isn't defined in this widget; you'll need to look that up to use this widget.");
+        console.error("atomUrl isn't defined; you'll need to look that up to use this.  It's right near the top of the gnu_social_widget.js file.");
         return;
         /*
         // No Atom URL.  We use the user URL.
         if(userUrl.length <= 0)
         {
             // Unless there's no user URL, either, in which case we just cry.
-            console.log("Either atomUrl or userUrl must be defined!");
+            showError("Either the atomUrl or userUrl variables must be defined to use this widget.");
+            console.error("Either atomUrl or userUrl must be defined!");
             return;
         }
 
