@@ -367,10 +367,6 @@ function setMode(base, modeString)
         base.find(".gsw_loading").toggle(true);
         base.find(".gsw_mainblock").toggle(false);
         base.find(".gsw_error").toggle(false);
-
-
-        // Thanks to CSS oddities I haven't quite figured out yet, we need to do
-        // this for loading and error so it shows up properly.
     }
     else if(modeString == "display")
     {
