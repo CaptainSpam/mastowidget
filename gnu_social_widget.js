@@ -41,9 +41,13 @@ function constructHtml(base)
     var userBlock = $(document.createElement("div"));
     userBlock.addClass("gsw_userblock");
 
+    // We build a-tags for the text links, sure, but here we need to wrap the
+    // div with an a-tag ahead of time.
+    var aElem = $(document.createElement("a"));
     curElem = $(document.createElement("div"));
     curElem.addClass("gsw_avatar");
-    userBlock.append(curElem);
+    aElem.append(curElem);
+    userBlock.append(aElem);
 
     var userInfo = $(document.createElement("div"));
     userInfo.addClass("gsw_userinfo");
@@ -385,10 +389,17 @@ function setMode(base, modeString)
 function showAuthorData(base)
 {
     var avatar = getAvatarData(96);
+
+    base.find(".gsw_avatar").parent().attr("href", authorData["uriAlt"]);
     base.find(".gsw_avatar").css("background-image", "url(\"" + avatar["href"] + "\")");
-    base.find(".gsw_userdisplayname").text(authorData["displayName"]);
-    var userAtName = base.find(".gsw_useratname");
+
     var aElem = $(document.createElement("a"));
+    aElem.text(authorData["displayName"]);
+    aElem.attr("href", authorData["uriAlt"]);
+    base.find(".gsw_userdisplayname").append(aElem);
+
+    var userAtName = base.find(".gsw_useratname");
+    aElem = $(document.createElement("a"));
     aElem.text(authorData["uriAlt"]);
     aElem.attr("href", authorData["uriAlt"]);
     userAtName.append(aElem);

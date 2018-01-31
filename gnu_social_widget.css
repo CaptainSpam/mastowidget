@@ -44,6 +44,16 @@
     background-size:contain;
 }
 
+.gsw_avatar:hover
+{
+    border:2px solid #505050;
+}
+
+.gsw_avatar:active
+{
+    border:2px solid #700000;
+}
+
 .gsw_userinfo
 {
     width:284px;
@@ -65,9 +75,17 @@
     margin-top:4px;
 }
 
+.gsw_entry_content a
+{
+    /* Sure, keep the underline on actual entries. */
+    text-decoration:underline;
+    color:black;
+}
+
 .gsw_useratname a,
 .gsw_entry_date a,
-.gsw_in_reply_to a
+.gsw_in_reply_to a,
+.gsw_userdisplayname a
 {
     text-decoration:none;
     color:black;
@@ -75,7 +93,9 @@
 
 .gsw_useratname a:hover,
 .gsw_entry_date a:hover,
-.gsw_in_reply_to a:hover
+.gsw_in_reply_to a:hover,
+.gsw_entry_content a:hover,
+.gsw_userdisplayname a:hover
 {
     color:#505050;
     text-decoration:underline;
@@ -83,7 +103,9 @@
 
 .gsw_useratname a:active,
 .gsw_entry_date a:active,
-.gsw_in_reply_to a:active
+.gsw_in_reply_to a:active,
+.gsw_entry_content a:active,
+.gsw_userdisplayname a:active
 {
     color:#700000;
     text-decoration:underline;
