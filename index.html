@@ -21,6 +21,14 @@
             <p>If need be, tweak the css to taste, and replace the jQuery script line with your favorite flavor of CDN or local file.</p>
         </div>
 
+        <!-- Oh, incidentally, if you'd like your non-Javascript-using guests to
+             not see the container sitting around, here's a simple fix: -->
+        <noscript>
+            <style>
+                #gs_widget { display:none !important; }
+            </style>
+        </noscript>
+
         <div id="gs_widget" class="gsw_container"></div>
     </body>
 </html>
