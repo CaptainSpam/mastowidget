@@ -8,8 +8,9 @@
 
 // We need an Atom feed URL to make this work at all.  Add that in here.
 var atomUrl = "";
-// This is the ID of the <div> element in which we're putting this.
-var baseDiv = "#gs_widget";
+// This is the ID of the element in which we're putting this.  This is the
+// iframe version, so chances are what you want is "body".
+var baseDiv = "body";
 
 var authorData = {};
 var postData = [];
