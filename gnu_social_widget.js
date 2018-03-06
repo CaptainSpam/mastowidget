@@ -11,6 +11,13 @@ var atomUrl = "";
 // This is the ID of the element in which we're putting this.  This is the
 // iframe version, so chances are what you want is "body".
 var baseDiv = "body";
+// All links in the widget, be they links to the posts, user, conversations, or
+// links contained in the posts themselves, will be targeted to this.  In
+// general, you either want "_parent" to have it take over the page itself or
+// "_new" to spawn a new browser tab.  If you have something more complex set
+// up, use that target instead.  Just try not to leave it blank, as that will
+// make it try to go to the iframe itself, which usually won't work.
+var baseTarget = "_new";
 
 var authorData = {};
 var postData = [];
@@ -45,6 +52,7 @@ function constructHtml(base)
     // We build a-tags for the text links, sure, but here we need to wrap the
     // div with an a-tag ahead of time.
     var aElem = $(document.createElement("a"));
+    aElem.attr("target", baseTarget);
     curElem = $(document.createElement("div"));
     curElem.addClass("gsw_avatar");
     aElem.append(curElem);
@@ -397,12 +405,14 @@ function showAuthorData(base)
     var aElem = $(document.createElement("a"));
     aElem.text(authorData["displayName"]);
     aElem.attr("href", authorData["uriAlt"]);
+    aElem.attr("target", baseTarget);
     base.find(".gsw_userdisplayname").append(aElem);
 
     var userAtName = base.find(".gsw_useratname");
     aElem = $(document.createElement("a"));
     aElem.text(authorData["uriAlt"]);
     aElem.attr("href", authorData["uriAlt"]);
+    aElem.attr("target", baseTarget);
     userAtName.append(aElem);
     base.find(".gsw_summary").text(authorData["summary"]);
 }
@@ -437,6 +447,7 @@ function showAllPosts(base)
 
                 var aElem = $(document.createElement("a"));
                 aElem.attr("href", data["url"]);
+                aElem.attr("target", baseTarget);
                 aElem.text(date);
                 curElem.append(aElem);
                 entryElem.append(curElem);
@@ -457,6 +468,7 @@ function showAllPosts(base)
 
                     aElem = $(document.createElement("a"));
                     aElem.attr("href", data["conversation"]);
+                    aElem.attr("target", baseTarget);
                     aElem.text("(part of a conversation)");
                     curElem.append(aElem);
                     entryElem.append(curElem);
@@ -472,6 +484,12 @@ function showAllPosts(base)
                 curElem = $(document.createElement("div"));
                 curElem.addClass("gsw_entry_content");
                 curElem.html(data["content"]);
+
+                // Now, if there were any <a> tags in the content, it has to be
+                // re-targeted to _parent so that it'll actually break out of
+                // the iframe.
+                curElem.find("a").attr("target", baseTarget);
+
                 entryElem.append(curElem);
 
                 // Finally, toss the block on to the end!
