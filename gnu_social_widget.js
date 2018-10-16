@@ -23,6 +23,17 @@ var authorData = {};
 var postData = [];
 var posts;
 
+var loadingText = "Loading...";
+var longLoadingTimeout;
+var longLoadingText = "Loading (in theory)...";
+var longLoadingElem;
+var longLoadingDelay = 5000;
+
+function longLoadingMessage()
+{
+    longLoadingElem.text(longLoadingText);
+}
+
 function constructHtml(base)
 {
     // This just builds up the HTML such that we only need one div on the page
@@ -35,8 +46,13 @@ function constructHtml(base)
     var curElem = $(document.createElement("div"));
     curElem.addClass("gsw_loading");
     // Loading also has the loading text baked-in.
-    curElem.text("Loading (in theory)...");
+    curElem.text(loadingText);
     base.append(curElem);
+
+    // Also, let's add in a timeout to add the "(in theory)" text back in if
+    // things are taking too long.
+    longLoadingElem = curElem;
+    longLoadingTimeout = setTimeout(longLoadingMessage, longLoadingDelay);
 
     curElem = $(document.createElement("div"));
     curElem.addClass("gsw_error");
@@ -507,6 +523,9 @@ function finalizePosts()
 {
     console.log("Found " + postData.length + " posts.");
 
+    // Stop the long-loading timeout, if it's still waiting.
+    clearTimeout(longLoadingTimeout);
+
     var base = $(baseDiv);
 
     setMode(base, "display");
@@ -530,7 +549,7 @@ $(document).ready(function()
         // Mastodon doesn't appear to publish an RSD in the right place to
         // determine the Atom URL from a server/username combo.  So for now,
         // either the user needs to know their Atom URL or this won't work.
-        showError("The atomUrl variable isn't defined in this widget; you'll need to look that up to use this widget.");
+        showError("The atomUrl variable isn't defined; you'll need to look that up to use this widget.");
         console.error("atomUrl isn't defined; you'll need to look that up to use this.  It's right near the top of the gnu_social_widget.js file.");
         return;
         /*
