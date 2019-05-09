@@ -191,7 +191,11 @@ function extractAuthorData(xml)
 {
     // Any call to the timeline should give us author data.  This should always
     // do the trick (assuming we got good XML and it didn't throw an error).
-    var author = xml.find("author");
+    // Remember, we need to ONLY find the author element that is an IMMEDIATE
+    // child of the top feed element, else we'll slurp up the author data of any
+    // repeated post.  This could technically probably just be
+    // xml.find("author").first(), but I like to be sure.
+    var author = xml.children("feed").children("author");
     var authorData = {};
     authorData["displayName"] = author.find("poco\\:displayName").text();
     authorData["preferredUsername"] = author.find("poco\\:preferredUsername").text();
