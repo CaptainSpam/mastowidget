@@ -233,7 +233,9 @@ function extractAuthorData(xml)
     {
         authorData["uriAlt"] = authorData["uri"];
     }
-    authorData["summary"] = author.find("summary").text();
+    var summary = author.find("summary");
+    authorData["summary"] = summary.text()
+    authorData["summaryIsHtml"] = (summary.attr("type") === "html");
     return authorData;
 }
 
@@ -439,7 +441,11 @@ function showAuthorData(base)
     aElem.attr("target", baseTarget);
     aElem.attr("rel", "noopener");
     userAtName.append(aElem);
-    base.find(".gsw_summary").text(authorData["summary"]);
+    if(authorData["summaryIsHtml"]) {
+        base.find(".gsw_summary").html(authorData["summary"]);
+    } else {
+        base.find(".gsw_summary").text(authorData["summary"]);
+    }
 }
 
 function showAllPosts(base)
