@@ -9,7 +9,7 @@
 
             <p>And by "edit the js accordingly", I mean set the atomUrl to the URL of your Atom feed.  You can find that by viewing the source of your feed's main page (on Mastodon-based sites, go directly to your @username page, not the four-panel page from which you do your posting) and looking for the <tt>&lt;link&gt;</tt> tag with <tt>type='application/atom+xml'</tt>.  Use the line in the <tt>href</tt> attribute.</p>
 
-            <p>Note that at present, Mastodon sites may not work.  At least on the server I tested it with, the Mastodon software doesn't look like it allows outside Javascript to read the Atom feeds for some reason.  Well, okay, it's a pretty clear reason (Access-Control-Allow-Origin isn't set), but it's still on their code, it appears.</p>
+            <p>Note that sites running older versions of Mastodon might not work with this.  This appears to have changed recently, but in the past, the Mastodon software didn't allow Javascript to read the Atom feeds.  If this affects you, try convincing your site's admin to update their Mastodon version.</p>
 
             <p>This is still very very early code.  Most errors won't be displayed.  Use this at your own risk, I'm not offering any guarantees here.</p>
 
