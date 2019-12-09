@@ -168,7 +168,7 @@ function fetchAtomData()
 function fetchNextPosts(posts, next)
 {
     // If we're already at 20 posts, stop now and go to finalize.
-    if(postData.length >= 20 || typeof next == 'undefined' || next.length <= 0)
+    if(postData.length >= 20 || typeof next === 'undefined' || next.length <= 0)
     {
         finalizePosts();
         return;
@@ -248,8 +248,8 @@ function extractPosts(xml)
 
     // Filter it out to just posts (object-type is a note, verb is a post).
     var posts = xml.find("entry").filter(function(index) {
-        var isNote = $(this).find("activity\\:object-type").text() == "http://activitystrea.ms/schema/1.0/note";
-        var isPost = $(this).find("activity\\:verb").text() == "http://activitystrea.ms/schema/1.0/post";
+        var isNote = $(this).find("activity\\:object-type").text() === "http://activitystrea.ms/schema/1.0/note";
+        var isPost = $(this).find("activity\\:verb").text() === "http://activitystrea.ms/schema/1.0/post";
 
         return isNote && isPost;
     });
@@ -349,13 +349,13 @@ function getAvatarData(maxWidth)
         var width = parseInt(data["width"]);
 
         // If this is an exact match, we're done!  Short-circuit our way out.
-        if(width == maxWidth)
+        if(width === maxWidth)
         {
             return data;
         }
 
         // Otherwise, if this is the first one we came across, keep it.
-        if(typeof best == "undefined")
+        if(typeof best === "undefined")
         {
             best = data;
             bestDifference = width - maxWidth;
@@ -400,19 +400,19 @@ function setMode(base, modeString)
     // "loading"
     // "display"
     // "error"
-    if(modeString == "loading")
+    if(modeString === "loading")
     {
         base.find(".gsw_loading").toggle(true);
         base.find(".gsw_mainblock").toggle(false);
         base.find(".gsw_error").toggle(false);
     }
-    else if(modeString == "display")
+    else if(modeString === "display")
     {
         base.find(".gsw_loading").toggle(false);
         base.find(".gsw_mainblock").toggle(true);
         base.find(".gsw_error").toggle(false);
     }
-    else if(modeString == "error")
+    else if(modeString === "error")
     {
         base.find(".gsw_loading").toggle(false);
         base.find(".gsw_mainblock").toggle(false);
