@@ -1,13 +1,13 @@
 /**
-* GNU Social Widget, copyright (C)2018 Nicholas Killewald
+* GNU Social Widget, copyright (C)2019 Nicholas Killewald
 * https://github.com/CaptainSpam/gswidget
 *
 * This file is distributed under the terms of the MIT License,
 * a copy of which can be found in the repository listed above.
 */
 
-// We need an Atom feed URL to make this work at all.  Add that in here.
-var atomUrl = "";
+// We need an RSS feed URL to make this work at all.  Add that in here.
+var rssUrl = "";
 // This is the ID of the element in which we're putting this.  This is the
 // iframe version, so chances are what you want is "body".
 var baseDiv = "body";
@@ -100,170 +100,113 @@ function constructHtml(base)
     base.append(mainBlock);
 }
 
-// This won't work for now.  We'll deal with this later.
-/*
-function fetchAtomUrlFromUser()
+function fetchRssData()
 {
-    // atomUrl wasn't defined, so we've got to figure that out from userUrl.
-    // To the internet!
-    $.get(userUrl, "", function(data, textStatus, jqXHR)
+    // With the RSS URL in hand, off we go for actual data!
+    $.get(rssUrl, "", function(data, textStatus, jqXHR)
     {
         var xml = $(data);
 
-        // Good!  In here should be an alternate link rel with an
-        // application/atom+xml type.
-        var atomData = xml.find("link[rel=alternate][type=application/atom+xml]");
-        if(atomData.length <= 0)
-        {
-            // Well, there isn't.  Poop.
-            showError("Couldn't find an Atom feed in the given user URL.  Are you sure that's the right one?");
-            console.error("Couldn't find an Atom feed in the metadata found in " + userUrl + ".");
-            return;
-        }
-        
-        if(atomData.length > 1)
-        {
-            // If there's more than one, that's bad and not following protocol.
-            // But, we'll just go with the first.
-            console.warn("There's somehow multiple Atom feeds listed in " + userUrl + ".  Ignoring all but the first...");
-        }
-
-        atomUrl = atomData.first().attr("href");
-
-        if(atomUrl.length <= 0)
-        {
-            // This means this instance is just completely broken.
-            showError("The Atom feed for this user URL can't be found because the data returned appears to be broken somehow.");
-            console.error("Found a link rel element for an Atom feed in " + userUrl + ", but the href in it was empty?  How?");
-            return;
-        }
-
-        // And with that in hand, off we go to getting the data itself!
-        fetchAtomData();
-    }).fail(genericFetchError());
-}
-*/
-
-function fetchAtomData()
-{
-    // With the Atom URL in hand, off we go for actual data!
-    $.get(atomUrl, "", function(data, textStatus, jqXHR)
-    {
-        var xml = $(data);
-
-        // Our author data.
+        // Get as much author data as we can.
         authorData = extractAuthorData(xml);
 
-        // Entries!
-        var posts = extractPosts(xml);
+        // Posts!
+        postData = extractPosts(xml);
 
-        var next = xml.find("feed link[rel=next]").attr("href");
-
-        // We've got the data and the next, go to fetchNextPosts.  That'll stop
-        // if we're done.
-        fetchNextPosts(posts, next);
-    }).fail(genericFetchError);
-}
-
-function fetchNextPosts(posts, next)
-{
-    // If we're already at 20 posts, stop now and go to finalize.
-    if(postData.length >= 20 || typeof next === 'undefined' || next.length <= 0)
-    {
+        // Since this is RSS, there shouldn't be a next field, unlike previous
+        // versions with the OStatus Atom file.  We should only need a single
+        // pass.
         finalizePosts();
-        return;
-    }
-
-    // We want to make sure we've got 20 posts.  The timeline will dump out
-    // follows and such as "entries", so if we come up short, keep asking
-    // for the next one until we either get 20 posts or we run out.
-    $.get(next, "", function(data, textStatus, jqXHR)
-    {
-        var xml = $(data);
-        var returned = extractPosts(xml);
-        var next = xml.find("feed link[rel=next]").attr("href");
-        // AGAIN!
-        fetchNextPosts(posts, next);
     }).fail(genericFetchError);
 }
 
 function extractAuthorData(xml)
 {
-    // Any call to the timeline should give us author data.  This should always
-    // do the trick (assuming we got good XML and it didn't throw an error).
-    // Remember, we need to ONLY find the author element that is an IMMEDIATE
-    // child of the top feed element, else we'll slurp up the author data of any
-    // repeated post.  This could technically probably just be
-    // xml.find("author").first(), but I like to be sure.
-    var author = xml.children("feed").children("author");
+    // The RSS data is much easier to parse than the full-on Atom data was.
+    // Unfortunately, it doesn't give us as much data, so we might need to
+    // improvise.
+    var author = xml.children("rss").children("channel");
     var authorData = {};
-    authorData["displayName"] = author.find("poco\\:displayName").text();
-    authorData["preferredUsername"] = author.find("poco\\:preferredUsername").text();
-    authorData["avatar"] = [];
 
-    // Avatars exist, per se, but we don't know how many or what sizes we'll
-    // get.  Best to just fetch 'em all, we can sort out which one(s) are best
-    // for a specific use later.
-    author.find("link[rel=avatar]").each(function(index)
+    // TODO: This is currently optimized for Mastodon's output.  If that output
+    // changes or this is some other form of ActivityPub server that doesn't
+    // format things the same way, it'll go to fallbacks.  Try to make said
+    // fallbacks more robust.
+    var title = author.children("title").text().trim();
+
+    // If this is Mastodon, let's assume the title is in the format of
+    // "USERTITLE (@USERNAME@INSTANCE)".  If it's not in that format, we're not
+    // in Mastodon.
+    var authorMatch = title.match(/^(?<displayname>.*)\s\((?<username>@.*@.*)\)$/);
+    if(authorMatch) {
+        // Got it!
+        authorData["displayName"] = authorMatch.groups.displayname;
+        authorData["preferredUsername"] = authorMatch.groups.username;
+    } else {
+        // Okay, crap.  The display name, then, will just be the entire line.
+        // We'll ignore the username and just link to this.
+        authorData["displayName"] = title;
+    }
+
+    // We have at most one avatar image in RSS.  That simplifies things.
+    var image = author.children("image");
+    if(image) {
+        // TODO: This data structure is based on what GNU Social uses, which
+        // isn't as useful here.  Change this later to just be a single URL.
+        // These width and height values are just dummies.
+        authorData["avatar"] = [
             {
-                var avatar = $(this);
-                authorData["avatar"].push({
-                    href:avatar.attr("href"),
-                    width:avatar.attr("media:width"),
-                    height:avatar.attr("media:height")
-                });
-            });
+                href:image.children("url").first().text().trim(),
+                width:"100",
+                height:"100",
+            }
+        ];
 
-    // uri appears to be the most-canon, most-technical URI to the user.  That
-    // doesn't seem to be what we want; on a GNU Social instance, this includes
-    // the user number (not name), which technically resolves but isn't very
-    // useful on a human-readable basis (on Mastodon, we get a human-readable
-    // yet still awkward "/users/something" style link).  The link tag marked as
-    // "alternate" in the author data, however, appears to be the "better" link;
-    // GNU Social gives us the "https://SITE/username" link and Mastodon gives
-    // us "https://SITE/@username", as expected.  I sure hope this is documented
-    // somewhere to be sure.
-    authorData["uri"] = author.find("uri").text();
-    var uriAlt = author.find("link[rel=alternate]");
-    if(uriAlt.length > 0)
-    {
-        authorData["uriAlt"] = uriAlt.attr("href");
+        // TODO: If there's no image supplied, this needs a default.
     }
-    else
-    {
-        authorData["uriAlt"] = authorData["uri"];
+
+    // The URL is pretty direct.
+    authorData["uri"] = author.children("link").text().trim();
+    authorData["uriAlt"] = authorData["uri"];
+
+    // Mastodon, for some reason, puts the toot/following/follower count in the
+    // RSS description along with the summary.  We can trim out that first part
+    // if it exists.  Split based on the separator dot.
+    var summary = author.children("description").text().trim();
+    console.log(`Summary looks like ${summary}`);
+    var summaryMatch = summary.match(/^(?<trimmedjunk>.*)\s\u00b7\s(?<actualsummary>.*)$/);
+    console.log("Resulting match:", summaryMatch);
+    if(summaryMatch) {
+        authorData["summary"] = summaryMatch.groups.actualsummary;
+    } else {
+        // If it's not Mastodon-like, fall back to the full description.
+        authorData["summary"] = summary;
     }
-    var summary = author.find("summary");
-    authorData["summary"] = summary.text()
-    authorData["summaryIsHtml"] = (summary.attr("type") === "html");
+    // TODO: See if Mastodon allows HTML in summaries (and if it carries into
+    // the RSS description field).
+    authorData["summaryIsHtml"] = false;
+
+    // TODO: I like the idea of the webfeeds:accentColor field, but there
+    // doesn't seem to be any way for the user to change this on a per-account
+    // basis (or for the server admin to do so without modifying source code),
+    // so we'll ignore it for now.
+
     return authorData;
 }
 
 function extractPosts(xml)
 {
-    // This extracts posts from XML data.  That is, all the entries that are
-    // posts and not things like follows, boosts, etc.  It pushes the data
-    // into the postData array as it goes along.
-    var entries = xml.find("entry");
-
-    // Filter it out to just posts (object-type is a note, verb is a post).
-    var posts = xml.find("entry").filter(function(index) {
-        var isNote = $(this).find("activity\\:object-type").text() === "http://activitystrea.ms/schema/1.0/note";
-        var isPost = $(this).find("activity\\:verb").text() === "http://activitystrea.ms/schema/1.0/post";
-
-        return isNote && isPost;
+    // Looks like RSS only returns posts, not follows and boosts like in GNU
+    // Social's Atom feed.  That's good, though this doesn't return direct
+    // public replies, either, which is not quite as good.  Still, it's what
+    // we've got, so let's go with it.
+    var posts = xml.children("rss").children("channel").children("item");
+    var extractedPostData = [];
+    posts.each(function(index) {
+        extractedPostData.push(extractPostData(this));
     });
 
-    // Okay, we've got data.  Step through and pull out data.
-    posts.each(function(index)
-            {
-                if(postData.length < 20)
-                {
-                    postData.push(extractPostData(this));
-                }
-            });
-
-    return posts;
+    return extractedPostData;
 }
 
 function extractPostData(obj)
@@ -276,52 +219,22 @@ function extractPostData(obj)
     // object to push into an array.  Let's wheel and deal!
     var toReturn = {};
 
-    // I'm not sure if any GNU Social implementation allows for a relevant title
-    // to be assigned, but let's grab it anyway.
-    toReturn["title"] = data.find("title").text();
+    // There's a title involved, but in Mastodon, it's always "New status by
+    // <USERNAME>".  Not very useful, but still...
+    toReturn["title"] = data.find("title").text().trim();
 
     // The content!  This is the important part.
-    toReturn["content"] = data.find("content").text();
+    toReturn["content"] = data.find("description").text().trim();
 
     // This comes in plaintext format, which I think can be converted.
-    toReturn["published"] = data.find("published").text();
+    toReturn["published"] = data.find("pubDate").text().trim();
 
     // Maybe we should provide a link to the post itself.
-    toReturn["url"] = data.find("link[rel=alternate]").attr("href");
+    toReturn["url"] = data.find("link").text().trim();
 
-    // If this is a reply to something, we should link to the original post,
-    // and maybe whatever the "local" server thinks is the conversation?  It
-    // looks like the local server understands the whole conversation and wraps
-    // it in its own theming.  So, ostatus:conversation appears to be "local",
-    // thr:in-reply-to goes to the remote server to which this user replied.  I
-    // do not know what happens if both users are on the same server.
-    var found = data.find("thr\\:in-reply-to");
-    if(found.length > 0)
-    {
-        toReturn["in-reply-to"] = found.attr("href");
-    }
-
-    found = data.find("ostatus\\:conversation");
-    if(found.length > 0)
-    {
-        toReturn["conversation"] = found.attr("href");
-    }
-
-    // And if this is a reply, we should have a "mentioned" link rel with a
-    // "person" type.
-    // TODO: But we don't get a username or display name directly from that?
-    // I hope we don't need to go back to the web to get it, as I don't think
-    // we're guaranteed to have JS access to it...
-    found = data.find("link[rel=mentioned][ostatus\\:object-type$=person]");
-    if(found.length > 0)
-    {
-        toReturn["mentioned"] = found.attr("href");
-    }
-
-    // Finally, grab some sort of unique ID.  In GNU Social and Mastodon
-    // implementations, the string found here is absurd enough that it HAS to be
-    // intended as a form of opaque string.
-    toReturn["id"] = data.find("id").text();
+    // Unfortunately, the RSS feed doesn't include replies, so we can skip over
+    // that part of the previous logic and skip straight to a unique ID.
+    toReturn["id"] = data.find("guid").text();
 
     // That should be all the data we need.  Away!
     return toReturn;
@@ -561,32 +474,16 @@ $(document).ready(function()
     widget.css("visibility", "visible");
 
     // So, where do we start?
-    if(atomUrl.length <= 0)
+    if(rssUrl.length <= 0)
     {
-        // TODO: I can't guarantee we can get to the userpage from JS, and
-        // Mastodon doesn't appear to publish an RSD in the right place to
-        // determine the Atom URL from a server/username combo.  So for now,
-        // either the user needs to know their Atom URL or this won't work.
-        showError("The atomUrl variable isn't defined; you'll need to look that up to use this widget.");
-        console.error("atomUrl isn't defined; you'll need to look that up to use this.  It's right near the top of the gnu_social_widget.js file.");
+        showError("The rssUrl variable isn't defined; you'll need to look that up to use this widget.");
+        console.error("rssUrl isn't defined; you'll need to look that up to use this.  It's right near the top of the gnu_social_widget.js file.");
         return;
-        /*
-        // No Atom URL.  We use the user URL.
-        if(userUrl.length <= 0)
-        {
-            // Unless there's no user URL, either, in which case we just cry.
-            showError("Either the atomUrl or userUrl variables must be defined to use this widget.");
-            console.error("Either atomUrl or userUrl must be defined!");
-            return;
-        }
-
-        fetchAtomUrlFromUser();
-        */
     }
     else
     {
-        // Atom data!  We can save an AJAX call!
-        fetchAtomData();
+        // RSS data!  Quick!  To AJAX!
+        fetchRssData();
     }
 });
 
