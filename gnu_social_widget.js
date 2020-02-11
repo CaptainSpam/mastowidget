@@ -174,7 +174,7 @@ function extractAuthorData(xml)
     // if it exists.  Split based on the separator dot.
     var summary = author.children("description").text().trim();
     console.log(`Summary looks like ${summary}`);
-    var summaryMatch = summary.match(/^(?<trimmedjunk>.*)\s\u00b7\s(?<actualsummary>.*)$/);
+    var summaryMatch = summary.match(/^(?<trimmedjunk>.*)\u00b7\s(?<actualsummary>.*)$/);
     console.log("Resulting match:", summaryMatch);
     if(summaryMatch) {
         authorData["summary"] = summaryMatch.groups.actualsummary;
