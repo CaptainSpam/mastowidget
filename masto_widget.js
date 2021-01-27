@@ -1,35 +1,40 @@
 /**
-* Mastowidget, copyright (C)2021 Nicholas Killewald
+* Mastowidget, copyright (C)2019-2021 Nicholas Killewald
 * https://github.com/CaptainSpam/mastowidget
 *
 * This file is distributed under the terms of the MIT License,
 * a copy of which can be found in the repository listed above.
 */
 
-// We need an RSS feed URL to make this work at all.  Add that in here.
-var rssUrl = "";
+// TODO: Remove this once status API parsing is in play.
+const rssUrl = "";
+
+// The account URL is the baseline.  We can get to statuses relative to here.
+const accountUrl = "";
+const statusesUrl = `${accountUrl}/statuses?limit=20`;
+
 // This is the ID of the element in which we're putting this.  This is the
 // iframe version, so chances are what you want is "body".
-var baseDiv = "body";
+const baseDiv = "body";
 // All links in the widget, be they links to the posts, user, conversations, or
 // links contained in the posts themselves, will be targeted to this.  In
 // general, you either want "_parent" to have it take over the page itself or
 // "_blank" to spawn a new browser tab.  If you have something more complex set
 // up, use that target instead.  Just try not to leave it an empty string, and
-// definitely don't make it "_self", as either will  make it try to go to the
+// definitely don't make it "_self", as either will make it try to go to the
 // iframe itself, which usually won't work.  Note that all links will open under
 // rel="noopener", as that's most likely the best idea for most cases.
-var baseTarget = "_blank";
+const baseTarget = "_blank";
 
 var authorData = {};
 var postData = [];
 var posts;
 
-var loadingText = "Loading...";
+const loadingText = "Loading...";
 var longLoadingTimeout;
-var longLoadingText = "Loading (in theory)...";
+const longLoadingText = "Loading (in theory)...";
 var longLoadingElem;
-var longLoadingDelay = 5000;
+const longLoadingDelay = 5000;
 
 function longLoadingMessage()
 {
@@ -100,15 +105,38 @@ function constructHtml(base)
     base.append(mainBlock);
 }
 
+function fetchAccountData() {
+    // While it looks like an account entity is returned with every status,
+    // we're just going to grab it now so we know what the user is.  What's
+    // returned with individual statuses might be things like the original
+    // author of a boosted status or whatnot.
+    $.get(accountUrl, "", function(data, textStatus, jqXHR)
+    {
+        console.log('AUTHOR FETCH:', data);
+
+        // Here comes author data!  And it's in nifty JSON format, too!
+        authorData = extractAuthorDataFromJson(data);
+
+        fetchStatuses();
+    }).fail(genericFetchError);
+}
+
+function fetchStatuses() {
+    // Status time!
+    $.get(statusesUrl, "", function(data, textStatus, jqXHR)
+    {
+        console.log('STATUS FETCH:', data);
+
+        fetchRssData();
+    }).fail(genericFetchError);
+}
+
 function fetchRssData()
 {
     // With the RSS URL in hand, off we go for actual data!
     $.get(rssUrl, "", function(data, textStatus, jqXHR)
     {
-        var xml = $(data);
-
-        // Get as much author data as we can.
-        authorData = extractAuthorData(xml);
+        const xml = $(data);
 
         // Posts!
         postData = extractPosts(xml);
@@ -120,76 +148,18 @@ function fetchRssData()
     }).fail(genericFetchError);
 }
 
-function extractAuthorData(xml)
-{
-    // The RSS data is much easier to parse than the full-on Atom data was.
-    // Unfortunately, it doesn't give us as much data, so we might need to
-    // improvise.
-    var author = xml.children("rss").children("channel");
-    var authorData = {};
+function extractAuthorDataFromJson(json) {
+    const authorData = {};
 
-    // TODO: This is currently optimized for Mastodon's output.  If that output
-    // changes or this is some other form of ActivityPub server that doesn't
-    // format things the same way, it'll go to fallbacks.  Try to make said
-    // fallbacks more robust.
-    var title = author.children("title").text().trim();
+    // Man, this is SO much nicer than guessing at what the RSS feed has...
+    authorData["displayName"] = json["display_name"];
+    authorData["uri"] = json["url"];
+    authorData["avatar"] = json["avatar"];
+    authorData["summary"] = json["note"];
 
-    // If this is Mastodon, let's assume the title is in the format of
-    // "USERTITLE (@USERNAME@INSTANCE)".  If it's not in that format, we're not
-    // in Mastodon.
-    var authorMatch = title.match(/^(?<displayname>.*)\s\((?<username>@.*@.*)\)$/);
-    if(authorMatch) {
-        // Got it!
-        authorData["displayName"] = authorMatch.groups.displayname;
-        authorData["preferredUsername"] = authorMatch.groups.username;
-    } else {
-        // Okay, crap.  The display name, then, will just be the entire line.
-        // We'll ignore the username and just link to this.
-        authorData["displayName"] = title;
-    }
-
-    // We have at most one avatar image in RSS.  That simplifies things.
-    var image = author.children("image");
-    if(image) {
-        // TODO: This data structure is based on what GNU Social uses, which
-        // isn't as useful here.  Change this later to just be a single URL.
-        // These width and height values are just dummies.
-        authorData["avatar"] = [
-            {
-                href:image.children("url").first().text().trim(),
-                width:"100",
-                height:"100",
-            }
-        ];
-
-        // TODO: If there's no image supplied, this needs a default.
-    }
-
-    // The URL is pretty direct.
-    authorData["uri"] = author.children("link").text().trim();
-    authorData["uriAlt"] = authorData["uri"];
-
-    // Mastodon, for some reason, puts the toot/following/follower count in the
-    // RSS description along with the summary.  We can trim out that first part
-    // if it exists.  Split based on the separator dot.
-    var summary = author.children("description").text().trim();
-    console.log(`Summary looks like ${summary}`);
-    var summaryMatch = summary.match(/^(?<trimmedjunk>.*)\u00b7\s(?<actualsummary>.*)$/);
-    console.log("Resulting match:", summaryMatch);
-    if(summaryMatch) {
-        authorData["summary"] = summaryMatch.groups.actualsummary;
-    } else {
-        // If it's not Mastodon-like, fall back to the full description.
-        authorData["summary"] = summary;
-    }
-    // TODO: See if Mastodon allows HTML in summaries (and if it carries into
-    // the RSS description field).
-    authorData["summaryIsHtml"] = false;
-
-    // TODO: I like the idea of the webfeeds:accentColor field, but there
-    // doesn't seem to be any way for the user to change this on a per-account
-    // basis (or for the server admin to do so without modifying source code),
-    // so we'll ignore it for now.
+    // TODO: Is this always true?  I don't see anything in Mastodon's output
+    // that would imply otherwise.
+    authorData["summaryIsHtml"] = true;
 
     return authorData;
 }
@@ -200,8 +170,8 @@ function extractPosts(xml)
     // Social's Atom feed.  That's good, though this doesn't return direct
     // public replies, either, which is not quite as good.  Still, it's what
     // we've got, so let's go with it.
-    var posts = xml.children("rss").children("channel").children("item");
-    var extractedPostData = [];
+    const posts = xml.children("rss").children("channel").children("item");
+    const extractedPostData = [];
     posts.each(function(index) {
         extractedPostData.push(extractPostData(this));
     });
@@ -240,62 +210,11 @@ function extractPostData(obj)
     return toReturn;
 }
 
-function getAvatarData(maxWidth)
-{
-    // This will pick the best avatar data for the given avatar width, assuming
-    // all avatars are square and we want either the exact width or one size
-    // *bigger* (as it's usually better to scale down than scale up).  We don't
-    // yet have a way to guarantee sorting, so we're just searching the entire
-    // array for now.
-
-    // First, if there is no avatar data, return an empty object.
-    if(authorData["avatar"].length <= 0)
-    {
-        return {};
-    }
-
-    var best;
-    var bestDifference;
-    for(var i = 0, l = authorData["avatar"].length; i < l; i++)
-    {
-        var data = authorData["avatar"][i];
-        var width = parseInt(data["width"]);
-
-        // If this is an exact match, we're done!  Short-circuit our way out.
-        if(width === maxWidth)
-        {
-            return data;
-        }
-
-        // Otherwise, if this is the first one we came across, keep it.
-        if(typeof best === "undefined")
-        {
-            best = data;
-            bestDifference = width - maxWidth;
-            continue;
-        }
-
-        // If this is greater than the target and closer than the current best
-        // (assuming positive differences always win over negatives), this is
-        // our new best.
-        if((width > maxWidth && (bestDifference < 0 || bestDifference > width - maxWidth))
-                || (width < maxWidth && (bestDifference < 0 && bestDifference < width - maxWidth)))
-        {
-            // WIN!
-            best = data;
-            bestDifference = width - maxWidth;
-        }
-    }
-
-    // Whatever was the best, out it goes!
-    return best;
-}
-
 function showError(errorText)
 {
-    var base = $(baseDiv);
+    const base = $(baseDiv);
     setMode(base, "error");
-    var error = base.find(".mw_error");
+    const error = base.find(".mw_error");
     error.text(errorText);
 }
 
@@ -303,7 +222,7 @@ function genericFetchError(data)
 {
     // Chances are the browser already dumped an error to console.log in this
     // case, so we don't need to do that here.
-    showError("There was some sort of problem reading your Atom feed.  If you're sure you typed it in right, maybe that server doesn't allow cross-domain Javascript widgets access to the feed (Mastodon instances in particular might deny access by default)?");
+    showError("There was some sort of problem reading your data.  If you're sure you typed it in right, maybe that server doesn't allow cross-domain Javascript widgets access to the feed (Mastodon instances in particular might deny access by default)?");
 }
 
 function setMode(base, modeString)
@@ -335,22 +254,20 @@ function setMode(base, modeString)
 
 function showAuthorData(base)
 {
-    var avatar = getAvatarData(96);
-
-    base.find(".mw_avatar").parent().attr("href", authorData["uriAlt"]);
-    base.find(".mw_avatar").css("background-image", "url(\"" + avatar["href"] + "\")");
+    base.find(".mw_avatar").parent().attr("href", authorData["uri"]);
+    base.find(".mw_avatar").css("background-image", "url(\"" + authorData["avatar"] + "\")");
 
     var aElem = $(document.createElement("a"));
     aElem.text(authorData["displayName"]);
-    aElem.attr("href", authorData["uriAlt"]);
+    aElem.attr("href", authorData["uri"]);
     aElem.attr("target", baseTarget);
     aElem.attr("rel", "noopener");
     base.find(".mw_userdisplayname").append(aElem);
 
-    var userAtName = base.find(".mw_useratname");
+    const userAtName = base.find(".mw_useratname");
     aElem = $(document.createElement("a"));
-    aElem.text(authorData["uriAlt"]);
-    aElem.attr("href", authorData["uriAlt"]);
+    aElem.text(authorData["uri"]);
+    aElem.attr("href", authorData["uri"]);
     aElem.attr("target", baseTarget);
     aElem.attr("rel", "noopener");
     userAtName.append(aElem);
@@ -474,16 +391,16 @@ $(document).ready(function()
     widget.css("visibility", "visible");
 
     // So, where do we start?
-    if(rssUrl.length <= 0)
+    if(!accountUrl)
     {
-        showError("The rssUrl variable isn't defined; you'll need to look that up to use this widget.");
-        console.error("rssUrl isn't defined; you'll need to look that up to use this.  It's right near the top of the gnu_social_widget.js file.");
+        showError("The accountUrl variable isn't defined or is empty; you'll need to look that up to use this widget.");
+        console.error("accountUrl isn't defined or is empty; you'll need to look that up to use this.  It's right near the top of the masto_widget.js file.");
         return;
     }
     else
     {
-        // RSS data!  Quick!  To AJAX!
-        fetchRssData();
+        // Quick!  To AJAX!  Start this whole thing in motion!
+        fetchAccountData();
     }
 });
 
