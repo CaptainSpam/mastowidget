@@ -7,6 +7,7 @@ body
     padding:0;
     background-color:#63e3ff;
     color:black;
+    font-size:16px;
     display:inline-flex;
     align-items:center;
     justify-content:center;
