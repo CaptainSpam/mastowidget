@@ -41,6 +41,30 @@ function makeLink() {
     return aElem;
 }
 
+function sanitizeHtmlToJQueryThingy(html) {
+    // Build a JQuery thingy out of the incoming HTML.
+    const elem = $(html);
+
+    // Step one, remove all script tags.  None of THAT nonsense, now.
+    elem.find("script").remove();
+
+    // On each attribute...
+    $.each(elem[0].attributes, function(index, attribute) {
+        const attrName = attribute.name;
+        const attrVal = attribute.value;
+
+        // Step two, any of the on* attributes, which might trigger JS.  Also,
+        // step three, any attribute that starts with "javascript:" is HELLA
+        // suspicious.
+        if(attrName.startsWith("on") || attrVal.startsWith("javascript:")) {
+            elem.removeAttr(attrName);
+        }
+    });
+
+    // Now cleaned, return the JQuery thingy.
+    return elem;
+}
+
 function longLoadingMessage() {
     longLoadingElem.text(longLoadingText);
 }
@@ -195,8 +219,7 @@ function showAuthorData(base) {
     aElem.attr("href", authorData["uri"]);
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
-        // TODO: Sanitize!
-        base.find(".mw_summary").html(authorData["summary"]);
+        base.find(".mw_summary").append(sanitizeHtmlToJQueryThingy(authorData["summary"]));
     } else {
         base.find(".mw_summary").text(authorData["summary"]);
     }
@@ -250,16 +273,9 @@ function showAllPosts(base) {
         // dump that in to make it look right.  To that end, though, this needs
         // to be sanitized properly.  I would think Mastodon would sanitize
         // things on their side, but hey, never can be too sure, right?
-        //
-        // TODO: Make said sanitizing function, do the same with author summary.
-        // Just removing <script> tags isn't good enough; we really should
-        // remove any of the on* attributes, any attribute whose value starts
-        // with "javascript:", etc.
         curElem = $(document.createElement("div"));
         curElem.addClass("mw_entry_content");
-        var content = $(data["content"]);
-        content.find("script").remove();
-        curElem.append(content);
+        curElem.append(sanitizeHtmlToJQueryThingy(data["content"]));
 
         // Unlike the RSS version, it looks like Mastodon already takes care of
         // rel and target="_blank" stuff.  That's handy.
