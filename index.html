@@ -1,11 +1,11 @@
 <html>
     <head>
-        <title>GS Widget Sample Page</title>
+        <title>Mastowidget Sample Page</title>
     </head>
 
     <body>
         <div id="leader">
-            <p>This is your run-of-the-mill sample page to test if GS Widget is working properly.  Just dump this in the same directory as the js and css files (and the gnu_social_widget.html file), edit the js accordingly, and pop it open in a browser.  Then, you'll see this text, and hopefully a widget box elsewhere on the page.</p>
+            <p>This is your run-of-the-mill sample page to test if Mastowidget is working properly.  Just dump this in the same directory as the js and css files (and the mastodon_widget.html file), edit the js accordingly, and pop it open in a browser.  Then, you'll see this text, and hopefully a widget box elsewhere on the page.</p>
 
             <p>And by "edit the js accordingly", I mean set the atomUrl to the URL of your Atom feed.  You can find that by viewing the source of your feed's main page (on Mastodon-based sites, go directly to your @username page, not the four-panel page from which you do your posting) and looking for the <tt>&lt;link&gt;</tt> tag with <tt>type='application/atom+xml'</tt>.  Use the line in the <tt>href</tt> attribute.</p>
 
@@ -14,16 +14,18 @@
             <p>This is still very very early code.  Most errors won't be displayed.  Use this at your own risk, I'm not offering any guarantees here.</p>
 
             <p>If need be, tweak the css to taste, and replace the jQuery script line with your favorite flavor of CDN or local file.</p>
+
+            <p>(also, this text is going to be rewritten soon, pending new API data)</p>
         </div>
 
         <!-- Oh, incidentally, if you'd like your non-Javascript-using guests to
              not see the container sitting around, here's a simple fix: -->
         <noscript>
             <style>
-                #gs_widget { display:none !important; }
+                #masto_widget { display:none !important; }
             </style>
         </noscript>
 
-        <iframe id="gs_widget" src="gnu_social_widget.html" width="400px" height="520px" style="border:0; margin:24px;" scrolling="no"></iframe>
+        <iframe id="masto_widget" src="mastodon_widget.html" width="400px" height="520px" style="border:0; margin:24px;" scrolling="no"></iframe>
     </body>
 </html>

@@ -14,26 +14,26 @@ body
     -webkit-justify-content:center;
 }
 
-.gsw_loading, .gsw_error
+.mw_loading, .mw_error
 {
     margin:24px;
     text-align:center;
 }
 
-.gsw_mainblock
+.mw_mainblock
 {
     display:flex;
     flex-flow:column;
 }
 
-.gsw_userblock
+.mw_userblock
 {
     width:400px;
     margin-bottom:4px;
     clear:both;
 }
 
-.gsw_avatar
+.mw_avatar
 {
     width:96px;
     height:96px;
@@ -45,17 +45,17 @@ body
     background-size:contain;
 }
 
-.gsw_avatar:hover
+.mw_avatar:hover
 {
     border:2px solid #505050;
 }
 
-.gsw_avatar:active
+.mw_avatar:active
 {
     border:2px solid #700000;
 }
 
-.gsw_userinfo
+.mw_userinfo
 {
     width:284px;
     margin:4px;
@@ -63,61 +63,61 @@ body
     overflow:hidden;
 }
 
-.gsw_userdisplayname
+.mw_userdisplayname
 {
     font-size:larger;
     font-weight:bold;
 }
 
-.gsw_useratname
+.mw_useratname
 {
     font-size:smaller;
     font-style:italic;
     margin-top:4px;
 }
 
-.gsw_entry_content a
+.mw_entry_content a
 {
     /* Sure, keep the underline on actual entries. */
     text-decoration:underline;
     color:black;
 }
 
-.gsw_useratname a,
-.gsw_entry_date a,
-.gsw_in_reply_to a,
-.gsw_userdisplayname a
+.mw_useratname a,
+.mw_entry_date a,
+.mw_in_reply_to a,
+.mw_userdisplayname a
 {
     text-decoration:none;
     color:black;
 }
 
-.gsw_useratname a:hover,
-.gsw_entry_date a:hover,
-.gsw_in_reply_to a:hover,
-.gsw_entry_content a:hover,
-.gsw_userdisplayname a:hover
+.mw_useratname a:hover,
+.mw_entry_date a:hover,
+.mw_in_reply_to a:hover,
+.mw_entry_content a:hover,
+.mw_userdisplayname a:hover
 {
     color:#505050;
     text-decoration:underline;
 }
 
-.gsw_useratname a:active,
-.gsw_entry_date a:active,
-.gsw_in_reply_to a:active,
-.gsw_entry_content a:active,
-.gsw_userdisplayname a:active
+.mw_useratname a:active,
+.mw_entry_date a:active,
+.mw_in_reply_to a:active,
+.mw_entry_content a:active,
+.mw_userdisplayname a:active
 {
     color:#700000;
     text-decoration:underline;
 }
 
-.gsw_summary
+.mw_summary
 {
     margin-top:4px;
 }
 
-.gsw_contentblock
+.mw_contentblock
 {
     margin:4px;
     clear:both;
@@ -126,35 +126,35 @@ body
     max-width:400px;
 }
 
-.gsw_contentblock > hr
+.mw_contentblock > hr
 {
     height:1px;
     border:0;
     background-image:linear-gradient(to right, #00000000, #000000aa, #00000000);
 }
 
-.gsw_entry
+.mw_entry
 {
     margin-bottom:8px;
     margin-left:4px;
     margin-right:4px;
 }
 
-.gsw_entry_date
+.mw_entry_date
 {
     font-size:smaller;
     font-weight:bold;
     margin-bottom:4px;
 }
 
-.gsw_in_reply_to
+.mw_in_reply_to
 {
     font-size:smaller;
     font-style:italic;
     margin-bottom:4px;
 }
 
-.gsw_entry_content
+.mw_entry_content
 {
 
 }

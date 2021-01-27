@@ -1,6 +1,6 @@
 /**
-* GNU Social Widget, copyright (C)2019 Nicholas Killewald
-* https://github.com/CaptainSpam/gswidget
+* Mastowidget, copyright (C)2021 Nicholas Killewald
+* https://github.com/CaptainSpam/mastowidget
 *
 * This file is distributed under the terms of the MIT License,
 * a copy of which can be found in the repository listed above.
@@ -42,11 +42,11 @@ function constructHtml(base)
     // to begin with.
     base.empty();
 
-    // Make sure the base is a gsw_container!
-    base.addClass("gsw_container");
+    // Make sure the base is a mw_container!
+    base.addClass("mw_container");
 
     var curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_loading");
+    curElem.addClass("mw_loading");
     // Loading also has the loading text baked-in.
     curElem.text(loadingText);
     base.append(curElem);
@@ -57,15 +57,15 @@ function constructHtml(base)
     longLoadingTimeout = setTimeout(longLoadingMessage, longLoadingDelay);
 
     curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_error");
+    curElem.addClass("mw_error");
     base.append(curElem);
 
     // The main block has a bit more going on.
     var mainBlock = $(document.createElement("div"));
-    mainBlock.addClass("gsw_mainblock");
+    mainBlock.addClass("mw_mainblock");
 
     var userBlock = $(document.createElement("div"));
-    userBlock.addClass("gsw_userblock");
+    userBlock.addClass("mw_userblock");
 
     // We build a-tags for the text links, sure, but here we need to wrap the
     // div with an a-tag ahead of time.
@@ -73,29 +73,29 @@ function constructHtml(base)
     aElem.attr("target", baseTarget);
     aElem.attr("rel", "noopener");
     curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_avatar");
+    curElem.addClass("mw_avatar");
     aElem.append(curElem);
     userBlock.append(aElem);
 
     var userInfo = $(document.createElement("div"));
-    userInfo.addClass("gsw_userinfo");
+    userInfo.addClass("mw_userinfo");
 
     curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_userdisplayname");
+    curElem.addClass("mw_userdisplayname");
     userInfo.append(curElem);
 
     curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_useratname");
+    curElem.addClass("mw_useratname");
     userInfo.append(curElem);
 
     curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_summary");
+    curElem.addClass("mw_summary");
     userInfo.append(curElem);
     userBlock.append(userInfo);
     mainBlock.append(userBlock);
 
     curElem = $(document.createElement("div"));
-    curElem.addClass("gsw_contentblock");
+    curElem.addClass("mw_contentblock");
     mainBlock.append(curElem);
     base.append(mainBlock);
 }
@@ -295,7 +295,7 @@ function showError(errorText)
 {
     var base = $(baseDiv);
     setMode(base, "error");
-    var error = base.find(".gsw_error");
+    var error = base.find(".mw_error");
     error.text(errorText);
 }
 
@@ -315,21 +315,21 @@ function setMode(base, modeString)
     // "error"
     if(modeString === "loading")
     {
-        base.find(".gsw_loading").toggle(true);
-        base.find(".gsw_mainblock").toggle(false);
-        base.find(".gsw_error").toggle(false);
+        base.find(".mw_loading").toggle(true);
+        base.find(".mw_mainblock").toggle(false);
+        base.find(".mw_error").toggle(false);
     }
     else if(modeString === "display")
     {
-        base.find(".gsw_loading").toggle(false);
-        base.find(".gsw_mainblock").toggle(true);
-        base.find(".gsw_error").toggle(false);
+        base.find(".mw_loading").toggle(false);
+        base.find(".mw_mainblock").toggle(true);
+        base.find(".mw_error").toggle(false);
     }
     else if(modeString === "error")
     {
-        base.find(".gsw_loading").toggle(false);
-        base.find(".gsw_mainblock").toggle(false);
-        base.find(".gsw_error").toggle(true);
+        base.find(".mw_loading").toggle(false);
+        base.find(".mw_mainblock").toggle(false);
+        base.find(".mw_error").toggle(true);
     }
 }
 
@@ -337,17 +337,17 @@ function showAuthorData(base)
 {
     var avatar = getAvatarData(96);
 
-    base.find(".gsw_avatar").parent().attr("href", authorData["uriAlt"]);
-    base.find(".gsw_avatar").css("background-image", "url(\"" + avatar["href"] + "\")");
+    base.find(".mw_avatar").parent().attr("href", authorData["uriAlt"]);
+    base.find(".mw_avatar").css("background-image", "url(\"" + avatar["href"] + "\")");
 
     var aElem = $(document.createElement("a"));
     aElem.text(authorData["displayName"]);
     aElem.attr("href", authorData["uriAlt"]);
     aElem.attr("target", baseTarget);
     aElem.attr("rel", "noopener");
-    base.find(".gsw_userdisplayname").append(aElem);
+    base.find(".mw_userdisplayname").append(aElem);
 
-    var userAtName = base.find(".gsw_useratname");
+    var userAtName = base.find(".mw_useratname");
     aElem = $(document.createElement("a"));
     aElem.text(authorData["uriAlt"]);
     aElem.attr("href", authorData["uriAlt"]);
@@ -355,15 +355,15 @@ function showAuthorData(base)
     aElem.attr("rel", "noopener");
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
-        base.find(".gsw_summary").html(authorData["summary"]);
+        base.find(".mw_summary").html(authorData["summary"]);
     } else {
-        base.find(".gsw_summary").text(authorData["summary"]);
+        base.find(".mw_summary").text(authorData["summary"]);
     }
 }
 
 function showAllPosts(base)
 {
-    var entries = base.find(".gsw_contentblock");
+    var entries = base.find(".mw_contentblock");
 
     // Later, we'll want to be able to update the content (i.e. adding more
     // entries after a timeout if more have been added at the source), but for
@@ -373,7 +373,7 @@ function showAllPosts(base)
     $.each(postData, function(index, data)
             {
                 var entryElem = $(document.createElement("div"));
-                entryElem.addClass("gsw_entry");
+                entryElem.addClass("mw_entry");
                 entryElem.attr("id", data["id"]);
 
                 var curElem;
@@ -387,7 +387,7 @@ function showAllPosts(base)
                 // this, I know.
                 var date = new Date(data["published"]);
                 curElem = $(document.createElement("div"));
-                curElem.addClass("gsw_entry_date");
+                curElem.addClass("mw_entry_date");
 
                 var aElem = $(document.createElement("a"));
                 aElem.attr("href", data["url"]);
@@ -409,7 +409,7 @@ function showAllPosts(base)
                 if("in-reply-to" in data)
                 {
                     curElem = $(document.createElement("div"));
-                    curElem.addClass("gsw_in_reply_to");
+                    curElem.addClass("mw_in_reply_to");
 
                     aElem = $(document.createElement("a"));
                     aElem.attr("href", data["conversation"]);
@@ -428,7 +428,7 @@ function showAllPosts(base)
                 // make sure we don't have someone being a jerk and putting,
                 // say, <script> tags in.
                 curElem = $(document.createElement("div"));
-                curElem.addClass("gsw_entry_content");
+                curElem.addClass("mw_entry_content");
                 curElem.html(data["content"]);
 
                 // Now, if there were any <a> tags in the content, they have to
