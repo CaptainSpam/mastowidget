@@ -156,5 +156,17 @@ body
 
 .mw_entry_content
 {
+    max-width:100%;
+    overflow:hidden;
+}
 
+.mw_media_container
+{
+    max-width:100%;
+}
+
+.mw_media_item img
+{
+    max-width:calc(100% - 10px);
+    border: 2px solid black;
 }

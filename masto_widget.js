@@ -267,6 +267,47 @@ function showAllPosts(base) {
 
         entryElem.append(curElem);
 
+        // If we've got any media to attach, attach it.
+        const media = data["media_attachments"];
+        if(media && media.length > 0) {
+            const mediaContainer = $(document.createElement("div"));
+            mediaContainer.addClass("mw_media_container");
+
+            // Keep track of how much media we've ACTUALLY added.  If all the
+            // attachments are things we can't handle, don't bother adding the
+            // media container to the DOM tree.
+            var mediaAdded = 0;
+
+            $.each(media, function(mediaIndex, mediaData) {
+                // TODO: Other media types?  We're just ignoring anything that
+                // isn't an image for now.
+                if(mediaData["type"] === "image") {
+                    const mediaElem = $(document.createElement("div"));
+                    mediaElem.addClass("mw_media_item");
+
+                    const aElem = $(document.createElement("a"));
+                    aElem.attr("href", mediaData["url"]);
+                    aElem.attr("target", baseTarget);
+                    aElem.attr("rel", "nofollow noopener noreferrer");
+
+                    const imgElem = $(document.createElement("img"));
+                    imgElem.attr("src", mediaData["preview_url"]);
+                    imgElem.attr("title", mediaData["description"]);
+                    imgElem.attr("alt", mediaData["description"]);
+
+                    aElem.append(imgElem);
+                    mediaElem.append(aElem);
+                    mediaContainer.append(mediaElem);
+
+                    mediaAdded++;
+                }
+            });
+
+            if(mediaAdded > 0) {
+                entryElem.append(mediaContainer);
+            }
+        }
+
         // Finally, toss the block on to the end!
         entries.append(entryElem);
 
