@@ -32,6 +32,15 @@ const longLoadingText = "Loading (in theory)...";
 var longLoadingElem;
 const longLoadingDelay = 5000;
 
+function makeLink() {
+    // Standard stuff that should go on every link.
+    const aElem = $(document.createElement("a"));
+    aElem.attr("target", baseTarget);
+    aElem.attr("rel", "nofollow noopener noreferrer");
+
+    return aElem;
+}
+
 function longLoadingMessage() {
     longLoadingElem.text(longLoadingText);
 }
@@ -68,9 +77,7 @@ function constructHtml(base) {
 
     // We build a-tags for the text links, sure, but here we need to wrap the
     // div with an a-tag ahead of time.
-    var aElem = $(document.createElement("a"));
-    aElem.attr("target", baseTarget);
-    aElem.attr("rel", "nofollow noopener noreferrer");
+    var aElem = makeLink();
     curElem = $(document.createElement("div"));
     curElem.addClass("mw_avatar");
     aElem.append(curElem);
@@ -177,19 +184,15 @@ function showAuthorData(base) {
     base.find(".mw_avatar").parent().attr("href", authorData["uri"]);
     base.find(".mw_avatar").css("background-image", "url(\"" + authorData["avatar"] + "\")");
 
-    var aElem = $(document.createElement("a"));
+    var aElem = makeLink();
     aElem.text(authorData["displayName"]);
     aElem.attr("href", authorData["uri"]);
-    aElem.attr("target", baseTarget);
-    aElem.attr("rel", "nofollow noopener noreferrer");
     base.find(".mw_userdisplayname").append(aElem);
 
     const userAtName = base.find(".mw_useratname");
-    aElem = $(document.createElement("a"));
+    aElem = makeLink();
     aElem.text(authorData["uri"]);
     aElem.attr("href", authorData["uri"]);
-    aElem.attr("target", baseTarget);
-    aElem.attr("rel", "nofollow noopener noreferrer");
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
         // TODO: Sanitize!
@@ -224,10 +227,8 @@ function showAllPosts(base) {
         curElem = $(document.createElement("div"));
         curElem.addClass("mw_entry_date");
 
-        var aElem = $(document.createElement("a"));
+        var aElem = makeLink();
         aElem.attr("href", data["url"]);
-        aElem.attr("target", baseTarget);
-        aElem.attr("rel", "nofollow noopener noreferrer");
         aElem.text(date);
         curElem.append(aElem);
         entryElem.append(curElem);
@@ -237,10 +238,8 @@ function showAllPosts(base) {
             curElem = $(document.createElement("div"));
             curElem.addClass("mw_in_reply_to");
 
-            aElem = $(document.createElement("a"));
+            aElem = makeLink();
             aElem.attr("href", data["conversation"]);
-            aElem.attr("target", baseTarget);
-            aElem.attr("rel", "nofollow noopener noreferrer");
             aElem.text("(part of a conversation)");
             curElem.append(aElem);
             entryElem.append(curElem);
@@ -285,10 +284,8 @@ function showAllPosts(base) {
                     const mediaElem = $(document.createElement("div"));
                     mediaElem.addClass("mw_media_item");
 
-                    const aElem = $(document.createElement("a"));
+                    const aElem = makeLink();
                     aElem.attr("href", mediaData["url"]);
-                    aElem.attr("target", baseTarget);
-                    aElem.attr("rel", "nofollow noopener noreferrer");
 
                     const imgElem = $(document.createElement("img"));
                     imgElem.attr("src", mediaData["preview_url"]);
