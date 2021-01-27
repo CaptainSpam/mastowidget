@@ -32,11 +32,18 @@ const longLoadingText = "Loading (in theory)...";
 var longLoadingElem;
 const longLoadingDelay = 5000;
 
-function makeLink() {
+function makeLink(href, text) {
     // Standard stuff that should go on every link.
     const aElem = $(document.createElement("a"));
     aElem.attr("target", baseTarget);
     aElem.attr("rel", "nofollow noopener noreferrer");
+    if(href) {
+        aElem.attr("href", href);
+    }
+
+    if(text) {
+        aElem.text(text);
+    }
 
     return aElem;
 }
@@ -208,15 +215,11 @@ function showAuthorData(base) {
     base.find(".mw_avatar").parent().attr("href", authorData["uri"]);
     base.find(".mw_avatar").css("background-image", "url(\"" + authorData["avatar"] + "\")");
 
-    var aElem = makeLink();
-    aElem.text(authorData["displayName"]);
-    aElem.attr("href", authorData["uri"]);
+    var aElem = makeLink(authorData["uri"], authorData["displayName"]);
     base.find(".mw_userdisplayname").append(aElem);
 
     const userAtName = base.find(".mw_useratname");
-    aElem = makeLink();
-    aElem.text(authorData["uri"]);
-    aElem.attr("href", authorData["uri"]);
+    aElem = makeLink(authorData["uri"], authorData["uri"]);
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
         base.find(".mw_summary").append(sanitizeHtmlToJQueryThingy(authorData["summary"]));
@@ -250,9 +253,7 @@ function showAllPosts(base) {
         curElem = $(document.createElement("div"));
         curElem.addClass("mw_entry_date");
 
-        var aElem = makeLink();
-        aElem.attr("href", data["url"]);
-        aElem.text(date);
+        var aElem = makeLink(data["url"], date);
         curElem.append(aElem);
         entryElem.append(curElem);
 
@@ -261,9 +262,7 @@ function showAllPosts(base) {
             curElem = $(document.createElement("div"));
             curElem.addClass("mw_in_reply_to");
 
-            aElem = makeLink();
-            aElem.attr("href", data["conversation"]);
-            aElem.text("(part of a conversation)");
+            aElem = makeLink(data["conversation"], "(part of a conversation)");
             curElem.append(aElem);
             entryElem.append(curElem);
         }
@@ -300,8 +299,7 @@ function showAllPosts(base) {
                     const mediaElem = $(document.createElement("div"));
                     mediaElem.addClass("mw_media_item");
 
-                    const aElem = makeLink();
-                    aElem.attr("href", mediaData["url"]);
+                    const aElem = makeLink(mediaData["url"]);
 
                     const imgElem = $(document.createElement("img"));
                     imgElem.attr("src", mediaData["preview_url"]);
