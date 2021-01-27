@@ -61,6 +61,15 @@ body
     margin:4px;
     float:left;
     overflow:hidden;
+    /* TODO: Redo this so it's not so pixel-finicky. */
+    max-height:100px;
+}
+
+.mw_userinfo p
+{
+    /* TODO: Find a better way to do this. */
+    margin-block-start:0;
+    margin-block-end:0;
 }
 
 .mw_userdisplayname
