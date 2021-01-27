@@ -6,9 +6,6 @@
 * a copy of which can be found in the repository listed above.
 */
 
-// TODO: Remove this once status API parsing is in play.
-const rssUrl = "";
-
 // The account URL is the baseline.  We can get to statuses relative to here.
 const accountUrl = "";
 const statusesUrl = `${accountUrl}/statuses?limit=20`;
@@ -28,7 +25,6 @@ const baseTarget = "_blank";
 
 var authorData = {};
 var postData = [];
-var posts;
 
 const loadingText = "Loading...";
 var longLoadingTimeout;
@@ -112,8 +108,6 @@ function fetchAccountData() {
     // author of a boosted status or whatnot.
     $.get(accountUrl, "", function(data, textStatus, jqXHR)
     {
-        console.log('AUTHOR FETCH:', data);
-
         // Here comes author data!  And it's in nifty JSON format, too!
         authorData = extractAuthorDataFromJson(data);
 
@@ -125,28 +119,13 @@ function fetchStatuses() {
     // Status time!
     $.get(statusesUrl, "", function(data, textStatus, jqXHR)
     {
-        console.log('STATUS FETCH:', data);
+        // Post data should just be an array of, well, post data.
+        postData = data;
 
-        fetchRssData();
-    }).fail(genericFetchError);
-}
-
-function fetchRssData()
-{
-    // With the RSS URL in hand, off we go for actual data!
-    $.get(rssUrl, "", function(data, textStatus, jqXHR)
-    {
-        const xml = $(data);
-
-        // Posts!
-        postData = extractPosts(xml);
-
-        // Since this is RSS, there shouldn't be a next field, unlike previous
-        // versions with the OStatus Atom file.  We should only need a single
-        // pass.
         finalizePosts();
     }).fail(genericFetchError);
 }
+
 
 function extractAuthorDataFromJson(json) {
     const authorData = {};
@@ -162,52 +141,6 @@ function extractAuthorDataFromJson(json) {
     authorData["summaryIsHtml"] = true;
 
     return authorData;
-}
-
-function extractPosts(xml)
-{
-    // Looks like RSS only returns posts, not follows and boosts like in GNU
-    // Social's Atom feed.  That's good, though this doesn't return direct
-    // public replies, either, which is not quite as good.  Still, it's what
-    // we've got, so let's go with it.
-    const posts = xml.children("rss").children("channel").children("item");
-    const extractedPostData = [];
-    posts.each(function(index) {
-        extractedPostData.push(extractPostData(this));
-    });
-
-    return extractedPostData;
-}
-
-function extractPostData(obj)
-{
-    // This extracts a post object out of a single entry's XML data.  You call
-    // extractPosts first, then call extractPostData from there.
-    var data = $(obj);
-
-    // What we have here is a single entry.  What we're returning is a single
-    // object to push into an array.  Let's wheel and deal!
-    var toReturn = {};
-
-    // There's a title involved, but in Mastodon, it's always "New status by
-    // <USERNAME>".  Not very useful, but still...
-    toReturn["title"] = data.find("title").text().trim();
-
-    // The content!  This is the important part.
-    toReturn["content"] = data.find("description").text().trim();
-
-    // This comes in plaintext format, which I think can be converted.
-    toReturn["published"] = data.find("pubDate").text().trim();
-
-    // Maybe we should provide a link to the post itself.
-    toReturn["url"] = data.find("link").text().trim();
-
-    // Unfortunately, the RSS feed doesn't include replies, so we can skip over
-    // that part of the previous logic and skip straight to a unique ID.
-    toReturn["id"] = data.find("guid").text();
-
-    // That should be all the data we need.  Away!
-    return toReturn;
 }
 
 function showError(errorText)
@@ -272,6 +205,7 @@ function showAuthorData(base)
     aElem.attr("rel", "noopener");
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
+        // TODO: Sanitize!
         base.find(".mw_summary").html(authorData["summary"]);
     } else {
         base.find(".mw_summary").text(authorData["summary"]);
@@ -302,7 +236,7 @@ function showAllPosts(base)
                 // the string we got for the date should be convertable to the
                 // local timezone this way.  There's more stable ways to do
                 // this, I know.
-                var date = new Date(data["published"]);
+                var date = new Date(data["created_at"]);
                 curElem = $(document.createElement("div"));
                 curElem.addClass("mw_entry_date");
 
@@ -314,15 +248,7 @@ function showAllPosts(base)
                 curElem.append(aElem);
                 entryElem.append(curElem);
 
-                // We don't really get all the data we need to make a full,
-                // clean "in reply to <USER>..." string here.  Until we can get
-                // that, we'll settle for "(part of a conversation)" and link to
-                // it on the local server.  Remember, "conversation" should
-                // always exist.  in-reply-to is the one that tells us this is a
-                // reply to something.
-                //
-                // TODO: Once we can generate "in reply to <USER>...", rewrite
-                // this to link back to THAT post, not the local conversation.
+                // TODO: This isn't how in-reply-to works, fix this.
                 if("in-reply-to" in data)
                 {
                     curElem = $(document.createElement("div"));
@@ -339,20 +265,23 @@ function showAllPosts(base)
 
                 // Get the content and paste that in, too.  This may need more
                 // careful analysis later; as it stands, content comes in as
-                // sanitized text, due to this being XML and not CDATA-wrapped.
-                // However, the HTML within said text is required for things
-                // like links or images to work.  I may need more work here to
-                // make sure we don't have someone being a jerk and putting,
-                // say, <script> tags in.
+                // HTML, and I have to dump that in to make it look right.  To
+                // that end, though, this needs to be sanitized properly.  I
+                // would think Mastodon would sanitize things on their side, but
+                // hey, never can be too sure, right?
+                //
+                // TODO: Make said sanitizing function, do the same with author
+                // summary.  Just removing <script> tags isn't good enough; we
+                // really should remove any of the on* attributes, any attribute
+                // whose value starts with "javascript:", etc.
                 curElem = $(document.createElement("div"));
                 curElem.addClass("mw_entry_content");
-                curElem.html(data["content"]);
+                var content = $(data["content"]);
+                content.find("script").remove();
+                curElem.append(content);
 
-                // Now, if there were any <a> tags in the content, they have to
-                // be re-targeted so that it'll actually break out of the
-                // iframe.  It'd be very embarrassing otherwise.
-                curElem.find("a").attr("target", baseTarget);
-                curElem.find("a").attr("rel", "noopener");
+                // Unlike the RSS version, it looks like Mastodon already takes
+                // care of rel and target="_blank" stuff.  That's handy.
 
                 entryElem.append(curElem);
 
