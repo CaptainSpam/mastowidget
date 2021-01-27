@@ -70,7 +70,7 @@ function constructHtml(base) {
     // div with an a-tag ahead of time.
     var aElem = $(document.createElement("a"));
     aElem.attr("target", baseTarget);
-    aElem.attr("rel", "noopener");
+    aElem.attr("rel", "nofollow noopener noreferrer");
     curElem = $(document.createElement("div"));
     curElem.addClass("mw_avatar");
     aElem.append(curElem);
@@ -181,7 +181,7 @@ function showAuthorData(base) {
     aElem.text(authorData["displayName"]);
     aElem.attr("href", authorData["uri"]);
     aElem.attr("target", baseTarget);
-    aElem.attr("rel", "noopener");
+    aElem.attr("rel", "nofollow noopener noreferrer");
     base.find(".mw_userdisplayname").append(aElem);
 
     const userAtName = base.find(".mw_useratname");
@@ -189,7 +189,7 @@ function showAuthorData(base) {
     aElem.text(authorData["uri"]);
     aElem.attr("href", authorData["uri"]);
     aElem.attr("target", baseTarget);
-    aElem.attr("rel", "noopener");
+    aElem.attr("rel", "nofollow noopener noreferrer");
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
         // TODO: Sanitize!
@@ -227,7 +227,7 @@ function showAllPosts(base) {
         var aElem = $(document.createElement("a"));
         aElem.attr("href", data["url"]);
         aElem.attr("target", baseTarget);
-        aElem.attr("rel", "noopener");
+        aElem.attr("rel", "nofollow noopener noreferrer");
         aElem.text(date);
         curElem.append(aElem);
         entryElem.append(curElem);
@@ -240,7 +240,7 @@ function showAllPosts(base) {
             aElem = $(document.createElement("a"));
             aElem.attr("href", data["conversation"]);
             aElem.attr("target", baseTarget);
-            aElem.attr("rel", "noopener");
+            aElem.attr("rel", "nofollow noopener noreferrer");
             aElem.text("(part of a conversation)");
             curElem.append(aElem);
             entryElem.append(curElem);
