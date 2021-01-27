@@ -311,6 +311,8 @@ function showAllPosts(base) {
                     mediaContainer.append(mediaElem);
 
                     mediaAdded++;
+                } else {
+                    console.warn(`Don't know how to handle media of type '${mediaData["type"]}', ignoring...`);
                 }
             });
 
