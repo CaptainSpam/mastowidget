@@ -13,15 +13,6 @@ const statusesUrl = `${accountUrl}/statuses?limit=20`;
 // This is the ID of the element in which we're putting this.  This is the
 // iframe version, so chances are what you want is "body".
 const baseDiv = "body";
-// All links in the widget, be they links to the posts, user, conversations, or
-// links contained in the posts themselves, will be targeted to this.  In
-// general, you either want "_parent" to have it take over the page itself or
-// "_blank" to spawn a new browser tab.  If you have something more complex set
-// up, use that target instead.  Just try not to leave it an empty string, and
-// definitely don't make it "_self", as either will make it try to go to the
-// iframe itself, which usually won't work.  Note that all links will open under
-// rel="noopener", as that's most likely the best idea for most cases.
-const baseTarget = "_blank";
 
 var authorData = {};
 var postData = [];
@@ -35,7 +26,6 @@ const longLoadingDelay = 5000;
 function makeLink(href, text) {
     // Standard stuff that should go on every link.
     const aElem = $(document.createElement("a"));
-    aElem.attr("target", baseTarget);
     aElem.attr("rel", "nofollow noopener noreferrer");
     if(href) {
         aElem.attr("href", href);
@@ -89,7 +79,7 @@ function constructHtml(base) {
     <div class="mw_error"></div>
     <div class="mw_mainblock">
         <div class="mw_userblock">
-            <a target="${baseTarget}" rel="nofollow noopener noreferrer">
+            <a rel="nofollow noopener noreferrer">
                 <div class="mw_avatar"></div>
             </a>
             <div class="mw_userinfo">
