@@ -84,57 +84,29 @@ function constructHtml(base) {
     // Make sure the base is a mw_container!
     base.addClass("mw_container");
 
-    var curElem = $(document.createElement("div"));
-    curElem.addClass("mw_loading");
-    // Loading also has the loading text baked-in.
-    curElem.text(loadingText);
-    base.append(curElem);
+    const allOfTheHtml = $(`
+    <div class="mw_loading">${loadingText}</div>
+    <div class="mw_error"></div>
+    <div class="mw_mainblock">
+        <div class="mw_userblock">
+            <a target="${baseTarget}" rel="nofollow noopener noreferrer">
+                <div class="mw_avatar"></div>
+            </a>
+            <div class="mw_userinfo">
+                <div class="mw_userdisplayname"></div>
+                <div class="mw_useratname"></div>
+                <div class="mw_summary"></div>
+            </div>
+        </div>
+        <div class="mw_contentblock"></div>
+    </div>`);
 
     // Also, let's add in a timeout to add the "(in theory)" text back in if
     // things are taking too long.
-    longLoadingElem = curElem;
+    longLoadingElem = allOfTheHtml.find('.mw_loading');
     longLoadingTimeout = setTimeout(longLoadingMessage, longLoadingDelay);
 
-    curElem = $(document.createElement("div"));
-    curElem.addClass("mw_error");
-    base.append(curElem);
-
-    // The main block has a bit more going on.
-    var mainBlock = $(document.createElement("div"));
-    mainBlock.addClass("mw_mainblock");
-
-    var userBlock = $(document.createElement("div"));
-    userBlock.addClass("mw_userblock");
-
-    // We build a-tags for the text links, sure, but here we need to wrap the
-    // div with an a-tag ahead of time.
-    var aElem = makeLink();
-    curElem = $(document.createElement("div"));
-    curElem.addClass("mw_avatar");
-    aElem.append(curElem);
-    userBlock.append(aElem);
-
-    var userInfo = $(document.createElement("div"));
-    userInfo.addClass("mw_userinfo");
-
-    curElem = $(document.createElement("div"));
-    curElem.addClass("mw_userdisplayname");
-    userInfo.append(curElem);
-
-    curElem = $(document.createElement("div"));
-    curElem.addClass("mw_useratname");
-    userInfo.append(curElem);
-
-    curElem = $(document.createElement("div"));
-    curElem.addClass("mw_summary");
-    userInfo.append(curElem);
-    userBlock.append(userInfo);
-    mainBlock.append(userBlock);
-
-    curElem = $(document.createElement("div"));
-    curElem.addClass("mw_contentblock");
-    mainBlock.append(curElem);
-    base.append(mainBlock);
+    base.append(allOfTheHtml);
 }
 
 function fetchAccountData() {
