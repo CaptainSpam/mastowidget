@@ -10,9 +10,9 @@
 const accountUrl = "";
 const statusesUrl = `${accountUrl}/statuses?limit=20`;
 
-// This is the ID of the element in which we're putting this.  This is the
-// iframe version, so chances are what you want is "body".
-const baseDiv = "body";
+// This is the base element in which we're putting this.  It will become a
+// jQuery thingy when the document loads.
+var baseElem = undefined;
 
 var authorData = {};
 var postData = [];
@@ -20,7 +20,6 @@ var postData = [];
 const loadingText = "Loading...";
 var longLoadingTimeout;
 const longLoadingText = "Loading (in theory)...";
-var longLoadingElem;
 const longLoadingDelay = 5000;
 
 function makeLink(href, text) {
@@ -63,16 +62,16 @@ function sanitizeHtmlToJQueryThingy(html) {
 }
 
 function longLoadingMessage() {
-    longLoadingElem.text(longLoadingText);
+    baseElem.find('.mw_loading').text(longLoadingText);
 }
 
-function constructHtml(base) {
+function constructHtml() {
     // This just builds up the HTML such that we only need one div on the page
     // to begin with.
-    base.empty();
+    baseElem.empty();
 
     // Make sure the base is a mw_container!
-    base.addClass("mw_container");
+    baseElem.addClass("mw_container");
 
     const allOfTheHtml = $(`
     <div class="mw_loading">${loadingText}</div>
@@ -93,10 +92,9 @@ function constructHtml(base) {
 
     // Also, let's add in a timeout to add the "(in theory)" text back in if
     // things are taking too long.
-    longLoadingElem = allOfTheHtml.find('.mw_loading');
     longLoadingTimeout = setTimeout(longLoadingMessage, longLoadingDelay);
 
-    base.append(allOfTheHtml);
+    baseElem.append(allOfTheHtml);
 }
 
 function fetchAccountData() {
@@ -140,9 +138,8 @@ function extractAuthorDataFromJson(json) {
 }
 
 function showError(errorText) {
-    const base = $(baseDiv);
-    setMode(base, "error");
-    const error = base.find(".mw_error");
+    setMode(baseElem, "error");
+    const error = baseElem.find(".mw_error");
     error.text(errorText);
 }
 
@@ -152,46 +149,46 @@ function genericFetchError(data) {
     showError("There was some sort of problem reading your data.  If you're sure you typed it in right, maybe that server doesn't allow cross-domain Javascript widgets access to the feed (Mastodon instances in particular might deny access by default)?");
 }
 
-function setMode(base, modeString) {
+function setMode(modeString) {
     // Our modes of choice today are:
     //
     // "loading"
     // "display"
     // "error"
     if(modeString === "loading") {
-        base.find(".mw_loading").toggle(true);
-        base.find(".mw_mainblock").toggle(false);
-        base.find(".mw_error").toggle(false);
+        baseElem.find(".mw_loading").toggle(true);
+        baseElem.find(".mw_mainblock").toggle(false);
+        baseElem.find(".mw_error").toggle(false);
     } else if(modeString === "display") {
-        base.find(".mw_loading").toggle(false);
-        base.find(".mw_mainblock").toggle(true);
-        base.find(".mw_error").toggle(false);
+        baseElem.find(".mw_loading").toggle(false);
+        baseElem.find(".mw_mainblock").toggle(true);
+        baseElem.find(".mw_error").toggle(false);
     } else if(modeString === "error") {
-        base.find(".mw_loading").toggle(false);
-        base.find(".mw_mainblock").toggle(false);
-        base.find(".mw_error").toggle(true);
+        baseElem.find(".mw_loading").toggle(false);
+        baseElem.find(".mw_mainblock").toggle(false);
+        baseElem.find(".mw_error").toggle(true);
     }
 }
 
-function showAuthorData(base) {
-    base.find(".mw_avatar").parent().attr("href", authorData["uri"]);
-    base.find(".mw_avatar").css("background-image", "url(\"" + authorData["avatar"] + "\")");
+function showAuthorData() {
+    baseElem.find(".mw_avatar").parent().attr("href", authorData["uri"]);
+    baseElem.find(".mw_avatar").css("background-image", "url(\"" + authorData["avatar"] + "\")");
 
     var aElem = makeLink(authorData["uri"], authorData["displayName"]);
-    base.find(".mw_userdisplayname").append(aElem);
+    baseElem.find(".mw_userdisplayname").append(aElem);
 
-    const userAtName = base.find(".mw_useratname");
+    const userAtName = baseElem.find(".mw_useratname");
     aElem = makeLink(authorData["uri"], authorData["uri"]);
     userAtName.append(aElem);
     if(authorData["summaryIsHtml"]) {
-        base.find(".mw_summary").append(sanitizeHtmlToJQueryThingy(authorData["summary"]));
+        baseElem.find(".mw_summary").append(sanitizeHtmlToJQueryThingy(authorData["summary"]));
     } else {
-        base.find(".mw_summary").text(authorData["summary"]);
+        baseElem.find(".mw_summary").text(authorData["summary"]);
     }
 }
 
-function showAllPosts(base) {
-    var entries = base.find(".mw_contentblock");
+function showAllPosts() {
+    var entries = baseElem.find(".mw_contentblock");
 
     // Later, we'll want to be able to update the content (i.e. adding more
     // entries after a timeout if more have been added at the source), but for
@@ -300,20 +297,18 @@ function finalizePosts() {
     // Stop the long-loading timeout, if it's still waiting.
     clearTimeout(longLoadingTimeout);
 
-    var base = $(baseDiv);
-
-    setMode(base, "display");
-    showAuthorData(base);
-    showAllPosts(base);
+    setMode("display");
+    showAuthorData();
+    showAllPosts();
 }
 
 $(document).ready(function() {
-    var widget = $(baseDiv);
+    // As this is an iframe, we want the base to be the overall body element.
+    baseElem = $("body");
+    constructHtml();
+    setMode("loading");
 
-    constructHtml(widget);
-    setMode(widget, "loading");
-
-    widget.css("visibility", "visible");
+    baseElem.css("visibility", "visible");
 
     // So, where do we start?
     if(!accountUrl) {
