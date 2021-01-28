@@ -41,24 +41,46 @@ function sanitizeHtmlToJQueryThingy(html) {
     // Build a JQuery thingy out of the incoming HTML.
     const elem = $(html);
 
-    // Step one, remove all script tags.  None of THAT nonsense, now.
-    elem.find("script").remove();
+    // If jQuery can't parse it (that is, it's not really HTML), bail out and
+    // return it as text.
+    if(!elem) {
+        // Though, wrap it in a span, just to be polite.
+        const toReturn = $(document.createElement("span"));
+        toReturn.text(html);
+        return toReturn;
+    }
 
-    // On each attribute...
-    $.each(elem[0].attributes, function(index, attribute) {
+    // Wrap it up in something so we can process it.
+    const wrapper = $(document.createElement("div"));
+    wrapper.append(elem);
+
+    // Next, remove all script elems inside.  None of THAT nonsense, now.
+    wrapper.find("script").remove();
+
+    // On each sub-element...
+    wrapper.find('*').each(function(index, childElem) {
+        sanitizeAttributesFromElement(childElem);
+    });
+
+    // Now cleaned, return the jQuery thingy (cloned, because there's no telling
+    // what's going to happen to the contents of the wrapper once it falls out
+    // of scope).
+    return elem.clone();
+}
+
+function sanitizeAttributesFromElement(elem) {
+    // For each attribute in the element...
+    $.each(elem.attributes, function(index, attribute) {
         const attrName = attribute.name;
         const attrVal = attribute.value;
 
-        // Step two, any of the on* attributes, which might trigger JS.  Also,
-        // step three, any attribute that starts with "javascript:" is HELLA
-        // suspicious.
+        // Remove any of the on* attributes, which might trigger JS.  Also,
+        // remove any attribute that starts with "javascript:", as that's
+        // HELLA suspicious.
         if(attrName.startsWith("on") || attrVal.startsWith("javascript:")) {
-            elem.removeAttr(attrName);
+            elem.removeAttribute(attrName);
         }
     });
-
-    // Now cleaned, return the JQuery thingy.
-    return elem;
 }
 
 function longLoadingMessage() {
