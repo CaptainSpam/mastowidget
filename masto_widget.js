@@ -121,7 +121,7 @@ function constructHtml() {
 
 function constructPostHtml(id, postUrl, postDate) {
     // A post has some common elements.  Other stuff is added afterward.
-    const postHtml = $(`
+    return $(`
     <div class="mw_entry" id="${id}">
         <div class="mw_entry_date">
             <a rel="nofollow noopener noreferrer" href="${postUrl}">${new Date(postDate)}</a>
@@ -129,8 +129,15 @@ function constructPostHtml(id, postUrl, postDate) {
         <div class="mw_entry_content"></div>
         <div class="mw_media_container"></div>
     </div>`);
+}
 
-    return postHtml;
+function constructImageAttachmentHtml(url, previewUrl, description) {
+    return $(`
+    <div class="mw_media_item">
+        <a rel="nofollow noopener noreferrer" href="${url}">
+            <img src="${previewUrl}" title="${description}" alt="${description}">
+        </a>
+    </div>`);
 }
 
 function fetchAccountData() {
@@ -265,20 +272,7 @@ function showAllPosts() {
                 // TODO: Other media types?  We're just ignoring anything that
                 // isn't an image for now.
                 if(mediaData['type'] === 'image') {
-                    const mediaElem = $(document.createElement('div'));
-                    mediaElem.addClass('mw_media_item');
-
-                    const aElem = makeLink(mediaData['url']);
-
-                    const imgElem = $(document.createElement('img'));
-                    imgElem.attr('src', mediaData['preview_url']);
-                    imgElem.attr('title', mediaData['description']);
-                    imgElem.attr('alt', mediaData['description']);
-
-                    aElem.append(imgElem);
-                    mediaElem.append(aElem);
-                    mediaContainer.append(mediaElem);
-
+                    mediaContainer.append(constructImageAttachmentHtml(mediaData['url'], mediaData['preview_url'], mediaData['description']));
                     mediaAdded++;
                 } else {
                     console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
