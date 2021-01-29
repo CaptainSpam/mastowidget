@@ -46,12 +46,14 @@ body
     background-size:contain;
 }
 
-.mw_avatar:hover
+.mw_avatar:hover,
+.mw_media_item img:hover
 {
     border:2px solid #505050;
 }
 
-.mw_avatar:active
+.mw_avatar:active,
+.mw_media_item img:active
 {
     border:2px solid #700000;
 }
