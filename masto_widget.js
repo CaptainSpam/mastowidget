@@ -96,20 +96,20 @@ function constructHtml() {
     baseElem.addClass('mw_container');
 
     const allOfTheHtml = $(`
-    <div class='mw_loading'>${loadingText}</div>
-    <div class='mw_error'></div>
-    <div class='mw_mainblock'>
-        <div class='mw_userblock'>
-            <a rel='nofollow noopener noreferrer'>
-                <div class='mw_avatar'></div>
+    <div class="mw_loading">${loadingText}</div>
+    <div class="mw_error"></div>
+    <div class="mw_mainblock">
+        <div class="mw_userblock">
+            <a rel="nofollow noopener noreferrer">
+                <div class="mw_avatar"></div>
             </a>
-            <div class='mw_userinfo'>
-                <div class='mw_userdisplayname'></div>
-                <div class='mw_useratname'></div>
-                <div class='mw_summary'></div>
+            <div class="mw_userinfo">
+                <div class="mw_userdisplayname"></div>
+                <div class="mw_useratname"></div>
+                <div class="mw_summary"></div>
             </div>
         </div>
-        <div class='mw_contentblock'></div>
+        <div class="mw_contentblock"></div>
     </div>`);
 
     // Also, let's add in a timeout to add the "(in theory)" text back in if
