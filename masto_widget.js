@@ -119,6 +119,20 @@ function constructHtml() {
     baseElem.append(allOfTheHtml);
 }
 
+function constructPostHtml(id, postUrl, postDate) {
+    // A post has some common elements.  Other stuff is added afterward.
+    const postHtml = $(`
+    <div class="mw_entry" id="${id}">
+        <div class="mw_entry_date">
+            <a rel="nofollow noopener noreferrer" href="${postUrl}">${new Date(postDate)}</a>
+        </div>
+        <div class="mw_entry_content"></div>
+        <div class="mw_media_container"></div>
+    </div>`);
+
+    return postHtml;
+}
+
 function fetchAccountData() {
     // While it looks like an account entity is returned with every status,
     // we're just going to grab it now so we know what the user is.  What's
@@ -218,27 +232,14 @@ function showAllPosts() {
     entries.empty();
 
     $.each(postData, function(index, data) {
-        var entryElem = $(document.createElement('div'));
-        entryElem.addClass('mw_entry');
-        entryElem.attr('id', data['id']);
+        // Build the skeleton post HTML.
+        const entryElem = constructPostHtml(data['id'], data['url'], data['created_at']);
 
-        var curElem;
-
-        // The current layout is pretty simple.  Should just be a series of
-        // blocks stacked on top of each other.
-
-        // First, the date.  I'll do more conversion later, but for now, the
-        // string we got for the date should be convertable to the local
-        // timezone this way.  There's more stable ways to do this, I know.
-        var date = new Date(data['created_at']);
-        curElem = $(document.createElement('div'));
-        curElem.addClass('mw_entry_date');
-
-        var aElem = makeLink(data['url'], date);
-        curElem.append(aElem);
-        entryElem.append(curElem);
+        // Then, toss sanitized content in.
+        entryElem.find('.mw_entry_content').append(sanitizeHtmlToJQueryThingy(data['content']));
 
         // TODO: This isn't how in-reply-to works, fix this.
+        /*
         if('in-reply-to' in data) {
             curElem = $(document.createElement('div'));
             curElem.addClass('mw_in_reply_to');
@@ -247,32 +248,19 @@ function showAllPosts() {
             curElem.append(aElem);
             entryElem.append(curElem);
         }
+        */
 
-        // Get the content and paste that in, too.  This may need more careful
-        // analysis later; as it stands, content comes in as HTML, and I have to
-        // dump that in to make it look right.  To that end, though, this needs
-        // to be sanitized properly.  I would think Mastodon would sanitize
-        // things on their side, but hey, never can be too sure, right?
-        curElem = $(document.createElement('div'));
-        curElem.addClass('mw_entry_content');
-        curElem.append(sanitizeHtmlToJQueryThingy(data['content']));
-
-        // Unlike the RSS version, it looks like Mastodon already takes care of
-        // rel and target='_blank' stuff.  That's handy.
-
-        entryElem.append(curElem);
-
-        // If we've got any media to attach, attach it.
+        // If we've got any media to attach, attach it to the appropriate
+        // container.
         const media = data['media_attachments'];
+
+        // Keep track of how much media we've added.  If there's none, or all
+        // the attachments are things we can't handle, remove the media
+        // container to the DOM tree.
+        var mediaAdded = 0;
+        const mediaContainer = entryElem.find('.mw_media_container');
+
         if(media && media.length > 0) {
-            const mediaContainer = $(document.createElement('div'));
-            mediaContainer.addClass('mw_media_container');
-
-            // Keep track of how much media we've ACTUALLY added.  If all the
-            // attachments are things we can't handle, don't bother adding the
-            // media container to the DOM tree.
-            var mediaAdded = 0;
-
             $.each(media, function(mediaIndex, mediaData) {
                 // TODO: Other media types?  We're just ignoring anything that
                 // isn't an image for now.
@@ -296,10 +284,10 @@ function showAllPosts() {
                     console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
                 }
             });
+        }
 
-            if(mediaAdded > 0) {
-                entryElem.append(mediaContainer);
-            }
+        if(mediaAdded === 0) {
+            mediaContainer.remove();
         }
 
         // Finally, toss the block on to the end!
