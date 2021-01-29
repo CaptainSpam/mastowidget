@@ -87,7 +87,7 @@ function longLoadingMessage() {
     baseElem.find('.mw_loading').text(longLoadingText);
 }
 
-function constructHtml() {
+function constructPage() {
     // This just builds up the HTML such that we only need one div on the page
     // to begin with.
     baseElem.empty();
@@ -119,7 +119,7 @@ function constructHtml() {
     baseElem.append(allOfTheHtml);
 }
 
-function constructPostHtml(id, postUrl, postDate) {
+function constructPost(id, postUrl, postDate) {
     // A post has some common elements.  Other stuff is added afterward.
     return $(`
     <div class="mw_entry" id="${id}">
@@ -131,7 +131,7 @@ function constructPostHtml(id, postUrl, postDate) {
     </div>`);
 }
 
-function constructImageAttachmentHtml(url, previewUrl, description) {
+function constructImageAttachment(url, previewUrl, description) {
     return $(`
     <div class="mw_media_item">
         <a rel="nofollow noopener noreferrer" href="${url}">
@@ -240,7 +240,7 @@ function showAllPosts() {
 
     $.each(postData, function(index, data) {
         // Build the skeleton post HTML.
-        const entryElem = constructPostHtml(data['id'], data['url'], data['created_at']);
+        const entryElem = constructPost(data['id'], data['url'], data['created_at']);
 
         // Then, toss sanitized content in.
         entryElem.find('.mw_entry_content').append(sanitizeHtmlToJQueryThingy(data['content']));
@@ -272,7 +272,7 @@ function showAllPosts() {
                 // TODO: Other media types?  We're just ignoring anything that
                 // isn't an image for now.
                 if(mediaData['type'] === 'image') {
-                    mediaContainer.append(constructImageAttachmentHtml(mediaData['url'], mediaData['preview_url'], mediaData['description']));
+                    mediaContainer.append(constructImageAttachment(mediaData['url'], mediaData['preview_url'], mediaData['description']));
                     mediaAdded++;
                 } else {
                     console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
@@ -309,7 +309,7 @@ function finalizePosts() {
 $(document).ready(function() {
     // As this is an iframe, we want the base to be the overall body element.
     baseElem = $('body');
-    constructHtml();
+    constructPage();
     setMode('loading');
 
     baseElem.css('visibility', 'visible');
