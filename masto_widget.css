@@ -47,12 +47,14 @@ body
 }
 
 .mw_avatar:hover,
+.mw_entry_avatar:hover,
 .mw_media_item img:hover
 {
     border:2px solid #505050;
 }
 
 .mw_avatar:active,
+.mw_entry_avatar:active,
 .mw_media_item img:active
 {
     border:2px solid #700000;
@@ -88,8 +90,9 @@ body
 }
 
 .mw_entry_date a,
-.mw_in_reply_to a,
-.mw_userdisplayname a
+.mw_entry_in_reply_to a,
+.mw_userdisplayname a,
+.mw_entry_userdisplayname a
 {
     text-decoration:none;
     color:black;
@@ -132,6 +135,13 @@ a:active
     margin-right:4px;
 }
 
+.mw_entry_userblock
+{
+    display:flex;
+    width:100%;
+    margin-bottom:4px;
+}
+
 .mw_entry_date
 {
     font-size:smaller;
@@ -139,11 +149,26 @@ a:active
     margin-bottom:4px;
 }
 
-.mw_in_reply_to
+.mw_entry_in_reply_to,
+.mw_entry_boosting
 {
     font-size:smaller;
     font-style:italic;
-    margin-bottom:4px;
+}
+
+.mw_entry_userdisplayname
+{
+    font-weight:bold;
+}
+
+.mw_entry_avatar
+{
+    width:48px;
+    height:48px;
+    border:2px solid black;
+    margin:2px 4px 0 0;
+    background-color:#63e3ff;
+    background-size:contain;
 }
 
 .mw_entry_content

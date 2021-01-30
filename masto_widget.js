@@ -121,16 +121,56 @@ function constructPage() {
     baseElem.append(allOfTheHtml);
 }
 
-function constructPost(id, postUrl, postDate) {
+function constructPost(postData) {
     // A post has some common elements.  Other stuff is added afterward.
-    return $(`
+    const id = postData['id'];
+    const date = new Date(postData['created_at']);
+
+    var userUrl = '';
+    var userDisplayName = '';
+    var postUrl = '';
+    if(postData['reblog']) {
+        postUrl = postData['reblog']['url'];
+        userUrl = postData['reblog']['account']['url'];
+        userDisplayName = postData['reblog']['account']['display_name'];
+    } else {
+        postUrl = postData['url'];
+        userUrl = postData['account']['url'];
+        userDisplayName = postData['account']['display_name'];
+    }
+
+    const toReturn = $(`
     <div class="mw_entry" id="${id}">
-        <div class="mw_entry_date">
-            <a rel="nofollow noopener noreferrer" href="${postUrl}">${new Date(postDate)}</a>
+        <div class="mw_entry_userblock">
+            <a rel="nofollow noopener noreferrer">
+                <div class="mw_entry_avatar"></div>
+            </a>
+            <div class="mw_entry_userinfo">
+                <div class="mw_entry_boosting">Boosting</div>
+                <div class="mw_entry_userdisplayname">
+                    <a rel="nofollow noopener noreferrer" href="${userUrl}">${userDisplayName}</a>
+                </div>
+                <!-- <div class="mw_entry_in_reply_to">Replying to [NAME AND LINK]</div> -->
+                <div class="mw_entry_date">
+                    <a rel="nofollow noopener noreferrer" href="${postUrl}" title="${date}">${date.toLocaleString()}</a>
+                </div>
+            </div>
         </div>
         <div class="mw_entry_content"></div>
         <div class="mw_media_container"></div>
     </div>`);
+
+    const avatar = toReturn.find('.mw_entry_avatar');
+    if(postData['reblog'] === null) {
+        toReturn.find('.mw_entry_boosting').remove();
+        avatar.parent().attr('href', postData['account']['url']);
+        avatar.css('background-image', 'url("' + postData['account']['avatar'] + '")');
+    } else {
+        avatar.parent().attr('href', postData['reblog']['account']['url']);
+        avatar.css('background-image', 'url("' + postData['reblog']['account']['avatar'] + '")');
+    }
+
+    return toReturn;
 }
 
 function constructImageAttachment(url, previewUrl, description) {
@@ -239,7 +279,7 @@ function showAllPosts() {
 
     $.each(postData, function(index, data) {
         // Build the skeleton post HTML.
-        const entryElem = constructPost(data['id'], data['url'], data['created_at']);
+        const entryElem = constructPost(data);
 
         // Then, toss sanitized content in.
         entryElem.find('.mw_entry_content').append(sanitizeHtmlToJQueryThingy(data['content']));
