@@ -174,12 +174,18 @@ function constructPost(postData) {
 }
 
 function constructImageAttachment(url, previewUrl, description) {
-    return $(`
+    const toReturn = $(`
     <div class="mw_media_item">
         <a rel="nofollow noopener noreferrer" href="${url}">
-            <img src="${previewUrl}" title="${description}" alt="${description}">
+            <img src="${previewUrl}">
         </a>
     </div>`);
+
+    if(description) {
+        toReturn.find('img').attr('title', description).attr('alt', description);
+    }
+
+    return toReturn;
 }
 
 function fetchAccountData() {
