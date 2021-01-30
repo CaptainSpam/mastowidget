@@ -62,7 +62,7 @@ body
 
 .mw_userinfo
 {
-    width:284px;
+    flex-grow:1;
     margin:4px;
     overflow:hidden;
 }
