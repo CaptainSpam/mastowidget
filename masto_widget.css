@@ -25,13 +25,15 @@ body
 {
     display:flex;
     flex-flow:column;
+    height:100%;
+    width:100%
 }
 
 .mw_userblock
 {
-    width:400px;
+    display:flex;
+    width:100%;
     margin-bottom:4px;
-    clear:both;
 }
 
 .mw_avatar
@@ -39,9 +41,7 @@ body
     width:96px;
     height:96px;
     border:2px solid black;
-    float:left;
     margin:4px;
-    clear:none;
     background-color:#63e3ff;
     background-size:contain;
 }
@@ -62,10 +62,7 @@ body
 {
     width:284px;
     margin:4px;
-    float:left;
     overflow:hidden;
-    /* TODO: Redo this so it's not so pixel-finicky. */
-    max-height:100px;
 }
 
 .mw_userinfo p
@@ -90,7 +87,8 @@ body
 
 .mw_entry_content a
 {
-    /* Sure, keep the underline on actual entries. */
+    /* Keep the underline on actual entries.  Those aren't as obvious that
+       they're links. */
     text-decoration:underline;
     color:black;
 }
@@ -132,10 +130,7 @@ body
 .mw_contentblock
 {
     margin:4px;
-    clear:both;
     overflow-y:auto;
-    max-height:400px;
-    max-width:400px;
 }
 
 .mw_contentblock > hr
@@ -169,7 +164,7 @@ body
 .mw_entry_content
 {
     max-width:100%;
-    overflow:hidden;
+    overflow:auto hidden;
 }
 
 .mw_media_container
