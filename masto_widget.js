@@ -105,7 +105,6 @@ function constructPage() {
             </a>
             <div class="mw_userinfo">
                 <div class="mw_userdisplayname"></div>
-                <div class="mw_useratname"></div>
                 <div class="mw_summary"></div>
             </div>
         </div>
@@ -220,9 +219,6 @@ function showAuthorData() {
     var aElem = makeLink(authorData['uri'], authorData['displayName']);
     baseElem.find('.mw_userdisplayname').append(aElem);
 
-    const userAtName = baseElem.find('.mw_useratname');
-    aElem = makeLink(authorData['uri'], authorData['uri']);
-    userAtName.append(aElem);
     if(authorData['summaryIsHtml']) {
         baseElem.find('.mw_summary').append(sanitizeHtmlToJQueryThingy(authorData['summary']));
     } else {
