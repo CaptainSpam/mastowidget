@@ -109,6 +109,9 @@ function constructPage() {
             </div>
         </div>
         <div class="mw_contentblock"></div>
+        <div class="mw_footerblock">
+            Powered by <a rel="nofollow noopener noreferrer" href="https://github.com/CaptainSpam/mastowidget">Mastowidget</a>
+        </div>
     </div>`);
 
     // Also, let's add in a timeout to add the "(in theory)" text back in if

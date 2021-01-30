@@ -85,10 +85,11 @@ body
     margin-top:4px;
 }
 
-.mw_entry_content a
+.mw_entry_content a,
+.mw_footerblock a
 {
-    /* Keep the underline on actual entries.  Those aren't as obvious that
-       they're links. */
+    /* Keep the underline on actual entries and in footerblock.  Those aren't
+       as obvious that they're links. */
     text-decoration:underline;
     color:black;
 }
@@ -102,21 +103,13 @@ body
     color:black;
 }
 
-.mw_useratname a:hover,
-.mw_entry_date a:hover,
-.mw_in_reply_to a:hover,
-.mw_entry_content a:hover,
-.mw_userdisplayname a:hover
+a:hover
 {
     color:#505050;
     text-decoration:underline;
 }
 
-.mw_useratname a:active,
-.mw_entry_date a:active,
-.mw_in_reply_to a:active,
-.mw_entry_content a:active,
-.mw_userdisplayname a:active
+a:active
 {
     color:#700000;
     text-decoration:underline;
@@ -176,4 +169,10 @@ body
 {
     max-width:calc(100% - 10px);
     border: 2px solid black;
+}
+
+.mw_footerblock {
+    font-size:x-small;
+    margin:0px 8px 4px;
+    text-align:right;
 }
