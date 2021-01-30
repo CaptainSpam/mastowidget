@@ -78,13 +78,6 @@ body
     font-weight:bold;
 }
 
-.mw_useratname
-{
-    font-size:smaller;
-    font-style:italic;
-    margin-top:4px;
-}
-
 .mw_entry_content a,
 .mw_footerblock a
 {
@@ -94,7 +87,6 @@ body
     color:black;
 }
 
-.mw_useratname a,
 .mw_entry_date a,
 .mw_in_reply_to a,
 .mw_userdisplayname a
