@@ -14,7 +14,7 @@ const statusesUrl = `${accountUrl}/statuses?limit=20`;
 // jQuery thingy when the document loads.
 var baseElem = undefined;
 
-var authorData = {};
+var userData = undefined;
 var postData = [];
 
 const loadingText = 'Loading...';
@@ -35,6 +35,13 @@ function makeLink(href, text) {
     }
 
     return aElem;
+}
+
+function makeAuthorLink(authorData) {
+    const aLink = makeLink(authorData['url']);
+    aLink.text(authorData['display_name']);
+    replaceEmojisInJQueryThingy(aLink, authorData['emojis']);
+    return aLink;
 }
 
 function sanitizeHtmlToJQueryThingy(html) {
@@ -83,6 +90,23 @@ function sanitizeAttributesFromElement(elem) {
     });
 }
 
+function replaceEmojisInJQueryThingy(jq, emojis) {
+    if(emojis && emojis.length > 0) {
+        // Because I'm feeling paranoid, build up a map to ensure the emoji are
+        // unique in the list.  This is working entirely by replaceAll, so we
+        // don't want any mishaps regarding firing twice on the same string.
+        const emojiMap = new Map();
+        for(const emojiData of emojis) {
+            emojiMap.set(emojiData['shortcode'], emojiData['url']);
+        }
+
+        for(const [shortcode, url] of emojiMap) {
+            const emojiCode = `:${shortcode}:`;
+            jq.html(jq.html().replaceAll(emojiCode, `<img class="mw_emoji" src="${url}" alt="${emojiCode}" title="${emojiCode}">`));
+        }
+    }
+}
+
 function longLoadingMessage() {
     baseElem.find('.mw_loading').text(longLoadingText);
 }
@@ -126,17 +150,14 @@ function constructPost(postData) {
     const id = postData['id'];
     const date = new Date(postData['created_at']);
 
-    var userUrl = '';
-    var userDisplayName = '';
     var postUrl = '';
+    var userALink = undefined;
     if(postData['reblog']) {
         postUrl = postData['reblog']['url'];
-        userUrl = postData['reblog']['account']['url'];
-        userDisplayName = postData['reblog']['account']['display_name'];
+        userALink = makeAuthorLink(postData['reblog']['account']);
     } else {
         postUrl = postData['url'];
-        userUrl = postData['account']['url'];
-        userDisplayName = postData['account']['display_name'];
+        userALink = makeAuthorLink(postData['account']);
     }
 
     const toReturn = $(`
@@ -148,7 +169,6 @@ function constructPost(postData) {
             <div class="mw_entry_userinfo">
                 <div class="mw_entry_boosting">Boosting</div>
                 <div class="mw_entry_userdisplayname">
-                    <a rel="nofollow noopener noreferrer" href="${userUrl}">${userDisplayName}</a>
                 </div>
                 <div class="mw_entry_date">
                     <a rel="nofollow noopener noreferrer" href="${postUrl}" title="${date}">${date.toLocaleString()}</a>
@@ -158,6 +178,8 @@ function constructPost(postData) {
         <div class="mw_entry_content"></div>
         <div class="mw_media_container"></div>
     </div>`);
+
+    toReturn.find('.mw_entry_userdisplayname').append(userALink);
 
     const avatar = toReturn.find('.mw_entry_avatar');
     if(postData['reblog'] === null) {
@@ -188,13 +210,9 @@ function constructImageAttachment(url, previewUrl, description) {
 }
 
 function fetchAccountData() {
-    // While it looks like an account entity is returned with every status,
-    // we're just going to grab it now so we know what the user is.  What's
-    // returned with individual statuses might be things like the original
-    // author of a boosted status or whatnot.
     $.get(accountUrl, '', function(data, textStatus, jqXHR) {
         // Here comes author data!  And it's in nifty JSON format, too!
-        authorData = extractAuthorDataFromJson(data);
+        userData = data;
 
         fetchStatuses();
     }).fail(genericFetchError);
@@ -208,23 +226,6 @@ function fetchStatuses() {
 
         finalizePosts();
     }).fail(genericFetchError);
-}
-
-
-function extractAuthorDataFromJson(json) {
-    const authorData = {};
-
-    // Man, this is SO much nicer than guessing at what the RSS feed has...
-    authorData['displayName'] = json['display_name'];
-    authorData['uri'] = json['url'];
-    authorData['avatar'] = json['avatar'];
-    authorData['summary'] = json['note'];
-
-    // TODO: Is this always true?  I don't see anything in Mastodon's output
-    // that would imply otherwise.
-    authorData['summaryIsHtml'] = true;
-
-    return authorData;
 }
 
 function showError(errorText) {
@@ -260,18 +261,14 @@ function setMode(modeString) {
     }
 }
 
-function showAuthorData() {
-    baseElem.find('.mw_avatar').parent().attr('href', authorData['uri']);
-    baseElem.find('.mw_avatar').css('background-image', 'url("' + authorData['avatar'] + '")');
+function showUserData() {
+    baseElem.find('.mw_avatar').parent().attr('href', userData['url']);
+    baseElem.find('.mw_avatar').css('background-image', 'url("' + userData['avatar'] + '")');
 
-    var aElem = makeLink(authorData['uri'], authorData['displayName']);
+    var aElem = makeAuthorLink(userData);
     baseElem.find('.mw_userdisplayname').append(aElem);
 
-    if(authorData['summaryIsHtml']) {
-        baseElem.find('.mw_summary').append(sanitizeHtmlToJQueryThingy(authorData['summary']));
-    } else {
-        baseElem.find('.mw_summary').text(authorData['summary']);
-    }
+    baseElem.find('.mw_summary').append(sanitizeHtmlToJQueryThingy(userData['note']));
 }
 
 function showAllPosts() {
@@ -294,12 +291,7 @@ function showAllPosts() {
         // mentioned is in use somewhere in the post.  I also hope they're
         // surrounded by colons, else I don't have any clue what we've got to
         // replace here.
-        if(data['emojis'] && data['emojis'].length > 0) {
-            $.each(data['emojis'], function(emojiIndex, emojiData) {
-                const emojiCode = `:${emojiData['shortcode']}:`;
-                content.html(content.html().replaceAll(emojiCode, `<img class="mw_emoji" src="${emojiData['url']}" alt="${emojiCode}" title="${emojiCode}">`));
-            });
-        }
+        replaceEmojisInJQueryThingy(content, data['emojis']);
 
         // If we've got any media to attach, attach it to the appropriate
         // container.
@@ -346,7 +338,7 @@ function finalizePosts() {
     clearTimeout(longLoadingTimeout);
 
     setMode('display');
-    showAuthorData();
+    showUserData();
     showAllPosts();
 }
 
