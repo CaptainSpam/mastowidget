@@ -192,6 +192,12 @@ a:active
     margin-block-end:0.6em;
 }
 
+.mw_emoji {
+    width:20px;
+    height:20px;
+    vertical-align:middle;
+}
+
 .mw_media_container
 {
     max-width:100%;

@@ -150,7 +150,6 @@ function constructPost(postData) {
                 <div class="mw_entry_userdisplayname">
                     <a rel="nofollow noopener noreferrer" href="${userUrl}">${userDisplayName}</a>
                 </div>
-                <!-- <div class="mw_entry_in_reply_to">Replying to [NAME AND LINK]</div> -->
                 <div class="mw_entry_date">
                     <a rel="nofollow noopener noreferrer" href="${postUrl}" title="${date}">${date.toLocaleString()}</a>
                 </div>
@@ -288,19 +287,19 @@ function showAllPosts() {
         const entryElem = constructPost(data);
 
         // Then, toss sanitized content in.
-        entryElem.find('.mw_entry_content').append(sanitizeHtmlToJQueryThingy(data['content']));
+        const content = sanitizeHtmlToJQueryThingy(data['content']);
+        entryElem.find('.mw_entry_content').append(content);
 
-        // TODO: This isn't how in-reply-to works, fix this.
-        /*
-        if('in-reply-to' in data) {
-            curElem = $(document.createElement('div'));
-            curElem.addClass('mw_in_reply_to');
-
-            aElem = makeLink(data['conversation'], '(part of a conversation)');
-            curElem.append(aElem);
-            entryElem.append(curElem);
+        // If there's any emoji in the data, it (hopefully) means anything
+        // mentioned is in use somewhere in the post.  I also hope they're
+        // surrounded by colons, else I don't have any clue what we've got to
+        // replace here.
+        if(data['emojis'] && data['emojis'].length > 0) {
+            $.each(data['emojis'], function(emojiIndex, emojiData) {
+                const emojiCode = `:${emojiData['shortcode']}:`;
+                content.html(content.html().replaceAll(emojiCode, `<img class="mw_emoji" src="${emojiData['url']}" alt="${emojiCode}" title="${emojiCode}">`));
+            });
         }
-        */
 
         // If we've got any media to attach, attach it to the appropriate
         // container.
@@ -308,7 +307,7 @@ function showAllPosts() {
 
         // Keep track of how much media we've added.  If there's none, or all
         // the attachments are things we can't handle, remove the media
-        // container to the DOM tree.
+        // container from the DOM tree.
         var mediaAdded = 0;
         const mediaContainer = entryElem.find('.mw_media_container');
 
