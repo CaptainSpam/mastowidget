@@ -77,7 +77,7 @@ function sanitizeHtmlToJQueryThingy(html) {
 
 function sanitizeAttributesFromElement(elem) {
     // For each attribute in the element...
-    $.each(elem.attributes, function(index, attribute) {
+    for(const attribute of elem.attributes) {
         const attrName = attribute.name;
         const attrVal = attribute.value;
 
@@ -87,7 +87,7 @@ function sanitizeAttributesFromElement(elem) {
         if(attrName.startsWith('on') || attrVal.startsWith('javascript:')) {
             elem.removeAttribute(attrName);
         }
-    });
+    };
 }
 
 function replaceEmojisInJQueryThingy(jq, emojis) {
@@ -279,7 +279,7 @@ function showAllPosts() {
     // now, let's always assume a complete wipe.
     entries.empty();
 
-    $.each(postData, function(index, data) {
+    for(const data of postData) {
         // Build the skeleton post HTML.
         const entryElem = constructPost(data);
 
@@ -304,7 +304,7 @@ function showAllPosts() {
         const mediaContainer = entryElem.find('.mw_media_container');
 
         if(media && media.length > 0) {
-            $.each(media, function(mediaIndex, mediaData) {
+            for(const mediaData of media){
                 // TODO: Other media types?  We're just ignoring anything that
                 // isn't an image for now.
                 if(mediaData['type'] === 'image') {
@@ -313,7 +313,7 @@ function showAllPosts() {
                 } else {
                     console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
                 }
-            });
+            };
         }
 
         if(mediaAdded === 0) {
@@ -325,7 +325,7 @@ function showAllPosts() {
 
         // And add a separator.
         entries.append($(document.createElement('hr')));
-    });
+    };
 
     // And knock out that last separator.
     entries.find('hr').last().remove();
