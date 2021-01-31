@@ -113,6 +113,8 @@ a:active
 .mw_summary
 {
     margin-top:4px;
+    font-size:smaller;
+    font-style:italic;
 }
 
 .mw_contentblock
