@@ -65,7 +65,7 @@ function sanitizeHtmlToJQueryThingy(html) {
     wrapper.find('script').remove();
 
     // On each sub-element...
-    wrapper.find('*').each(function(index, childElem) {
+    wrapper.find('*').each((index, childElem) => {
         sanitizeAttributesFromElement(childElem);
     });
 
@@ -210,7 +210,7 @@ function constructImageAttachment(url, previewUrl, description) {
 }
 
 function fetchAccountData() {
-    $.get(accountUrl, '', function(data, textStatus, jqXHR) {
+    $.get(accountUrl, '', (data, textStatus, jqXHR) => {
         // Here comes author data!  And it's in nifty JSON format, too!
         userData = data;
 
@@ -220,7 +220,7 @@ function fetchAccountData() {
 
 function fetchStatuses() {
     // Status time!
-    $.get(statusesUrl, '', function(data, textStatus, jqXHR) {
+    $.get(statusesUrl, '', (data, textStatus, jqXHR) => {
         // Post data should just be an array of, well, post data.
         postData = data;
 
@@ -342,7 +342,7 @@ function finalizePosts() {
     showAllPosts();
 }
 
-$(document).ready(function() {
+$(document).ready(() => {
     // As this is an iframe, we want the base to be the overall body element.
     baseElem = $('body');
     constructPage();
