@@ -177,6 +177,11 @@ a:active
     overflow:auto hidden;
 }
 
+.mw_entry_content p {
+    margin-block-start:0.6em;
+    margin-block-end:0.6em;
+}
+
 .mw_media_container
 {
     max-width:100%;
