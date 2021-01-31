@@ -74,9 +74,14 @@ body
     margin-block-end:0;
 }
 
-.mw_userdisplayname
+.mw_userdisplayname a
 {
     font-size:larger;
+    font-weight:bold;
+}
+
+.mw_entry_content a.mention
+{
     font-weight:bold;
 }
 
@@ -92,18 +97,21 @@ body
 .mw_entry_date a,
 .mw_entry_in_reply_to a,
 .mw_userdisplayname a,
-.mw_entry_userdisplayname a
+.mw_entry_userdisplayname a,
+.mw_entry_content a.mention
 {
     text-decoration:none;
     color:black;
 }
 
+.mw_entry_content a.mention:hover,
 a:hover
 {
     color:#505050;
     text-decoration:underline;
 }
 
+.mw_entry_content a.mention:active,
 a:active
 {
     color:#700000;
