@@ -31,19 +31,8 @@ body
 
 .mw_userblock
 {
-    display:flex;
     width:100%;
-    margin-bottom:4px;
-}
-
-.mw_avatar
-{
-    width:96px;
-    height:96px;
-    border:2px solid black;
     margin:4px;
-    background-color:#63e3ff;
-    background-size:contain;
 }
 
 .mw_avatar:hover,
@@ -60,14 +49,7 @@ body
     border:2px solid #700000;
 }
 
-.mw_userinfo
-{
-    flex-grow:1;
-    margin:4px;
-    overflow:hidden;
-}
-
-.mw_userinfo p
+.mw_userblock p
 {
     /* TODO: Find a better way to do this. */
     margin-block-start:0;
@@ -131,7 +113,8 @@ a:active
     overflow-y:auto;
 }
 
-.mw_contentblock > hr
+.mw_contentblock > hr,
+.mw_userblock > hr
 {
     height:1px;
     border:0;

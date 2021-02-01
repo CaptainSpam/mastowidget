@@ -124,13 +124,9 @@ function constructPage() {
     <div class="mw_error"></div>
     <div class="mw_mainblock">
         <div class="mw_userblock">
-            <a rel="nofollow noopener noreferrer">
-                <div class="mw_avatar"></div>
-            </a>
-            <div class="mw_userinfo">
-                <div class="mw_userdisplayname"></div>
-                <div class="mw_summary"></div>
-            </div>
+            <div class="mw_userdisplayname"></div>
+            <div class="mw_summary"></div>
+            <hr>
         </div>
         <div class="mw_contentblock"></div>
         <div class="mw_footerblock">
@@ -262,11 +258,8 @@ function setMode(modeString) {
 }
 
 function showUserData() {
-    baseElem.find('.mw_avatar').parent().attr('href', userData['url']);
-    baseElem.find('.mw_avatar').css('background-image', 'url("' + userData['avatar'] + '")');
-
     var aElem = makeAuthorLink(userData);
-    baseElem.find('.mw_userdisplayname').append(aElem);
+    baseElem.find('.mw_userdisplayname').text('Toots by ').append(aElem);
 
     baseElem.find('.mw_summary').append(sanitizeHtmlToJQueryThingy(userData['note']));
 }
