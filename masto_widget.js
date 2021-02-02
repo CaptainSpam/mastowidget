@@ -171,7 +171,13 @@ function constructPost(postData) {
                 </div>
             </div>
         </div>
-        <div class="mw_entry_content"></div>
+        <div class="mw_entry_container">
+            <div class="mw_spoiler">
+                <span class="mw_spoiler_text"></span>
+                <button class="mw_spoiler_button">Show more</button>
+            </div>
+            <div class="mw_entry_content"></div>
+        </div>
         <div class="mw_media_container"></div>
     </div>`);
 
@@ -278,13 +284,41 @@ function showAllPosts() {
 
         // Then, toss sanitized content in.
         const content = sanitizeHtmlToJQueryThingy(data['content']);
-        entryElem.find('.mw_entry_content').append(content);
+        const contentElem = entryElem.find('.mw_entry_content');
+        contentElem.append(content);
 
         // If there's any emoji in the data, it (hopefully) means anything
-        // mentioned is in use somewhere in the post.  I also hope they're
-        // surrounded by colons, else I don't have any clue what we've got to
-        // replace here.
+        // mentioned is in use somewhere in the post.
         replaceEmojisInJQueryThingy(content, data['emojis']);
+
+        // Now, if there's a spoiler/sensitive flag, handle that, too.
+        if(data['sensitive']) {
+            // Hide the actual entry.
+            contentElem.toggle(false);
+
+            if(data['spoiler_text']) {
+                // Add in some spoiler text, if applicable.  This can be empty.
+                // This is not HTML, as far as I can tell.
+                const spoilerText = entryElem.find('.mw_spoiler_text');
+                spoilerText.text(data['spoiler_text']);
+
+                // Emojify it, too.
+                replaceEmojisInJQueryThingy(spoilerText, data['emojis']);
+            }
+
+            // Then, make the button do something.
+            const spoilerButton = entryElem.find('.mw_spoiler_button');
+            spoilerButton.click((event) => {
+                // Specifically, toggle the text...
+                contentElem.toggle();
+
+                // ...and, update the button's text.
+                spoilerButton.text(contentElem.is(':visible') ? 'Show less' : 'Show more');
+            });
+        } else {
+            // If it's not that sensitive, remove the spoiler block entirely.
+            entryElem.find('.mw_spoiler').remove();
+        }
 
         // If we've got any media to attach, attach it to the appropriate
         // container.
