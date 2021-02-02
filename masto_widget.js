@@ -7,6 +7,9 @@
 */
 
 // The account URL is the baseline.  We can get to statuses relative to here.
+// Specifically, this is the API endpoint to access an account's info.  The
+// usual format will be 'https://<INSTANCE>/api/v1/accounts/<ID>'.  You'll need
+// to figure out your numeric ID on the instance to use this.
 const accountUrl = '';
 const statusesUrl = `${accountUrl}/statuses?limit=20`;
 
@@ -239,7 +242,7 @@ function showError(errorText) {
 function genericFetchError(data) {
     // Chances are the browser already dumped an error to console.log in this
     // case, so we don't need to do that here.
-    showError('There was some sort of problem reading your data.  If you\'re sure you typed it in right, maybe that server doesn\'t allow cross-domain Javascript widgets access to the feed (Mastodon instances in particular might deny access by default)?');
+    showError('There was some sort of problem fetching data.  If you\'re sure you have the right account API URL, maybe there\'s an issue with the instance at the moment?');
 }
 
 function setMode(modeString) {
@@ -380,7 +383,7 @@ $(document).ready(() => {
     // So, where do we start?
     if(!accountUrl) {
         showError('The accountUrl variable isn\'t defined or is empty; you\'ll need to look that up to use this widget.');
-        console.error('accountUrl isn\'t defined or is empty; you\'ll need to look that up to use this.  It\'s right near the top of the masto_widget.js file.');
+        console.error('accountUrl isn\'t defined or is empty; you\'ll need to look that up to use this.  The variable is defined right near the top of the masto_widget.js file.');
         return;
     } else {
         // Quick!  To AJAX!  Start this whole thing in motion!

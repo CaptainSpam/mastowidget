@@ -1,4 +1,4 @@
-# mastowidget
+# Mastowidget
 A simple webpage widget for Mastodon-based microblogs
 
 This widget might be handy for embedding Mastodon posts into a website.  At present, the aim is to be simple and effective.  I make no guarantees it will continue being simple.
