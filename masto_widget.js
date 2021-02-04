@@ -179,7 +179,10 @@ function constructPost(postData) {
                 <span class="mw_spoiler_text"></span>
                 <button class="mw_spoiler_button">Show more</button>
             </div>
-            <div class="mw_entry_content"></div>
+            <div class="mw_spoilerable">
+                <div class="mw_entry_content"></div>
+                <div class="mw_poll_container"></div>
+            </div>
         </div>
         <div class="mw_media_container"></div>
     </div>`);
@@ -297,7 +300,8 @@ function showAllPosts() {
         // Now, if there's a spoiler/sensitive flag, handle that, too.
         if(data['sensitive']) {
             // Hide the actual entry.
-            contentElem.toggle(false);
+            const spoilerableElem = entryElem.find('.mw_spoilerable');
+            spoilerableElem.toggle(false);
 
             if(data['spoiler_text']) {
                 // Add in some spoiler text, if applicable.  This can be empty.
@@ -313,7 +317,7 @@ function showAllPosts() {
             const spoilerButton = entryElem.find('.mw_spoiler_button');
             spoilerButton.click((event) => {
                 // Specifically, toggle the text...
-                contentElem.toggle();
+                spoilerableElem.toggle();
 
                 // ...and, update the button's text.
                 spoilerButton.text(contentElem.is(':visible') ? 'Show less' : 'Show more');
@@ -348,6 +352,65 @@ function showAllPosts() {
 
         if(mediaAdded === 0) {
             mediaContainer.remove();
+        }
+
+        // Is there a poll?  Toss that in, too.
+        const pollContainer = entryElem.find('.mw_poll_container');
+        if(data['poll']) {
+            const poll = data['poll'];
+
+            // Funny, polls don't have titles.  Well, I guess the entire toot
+            // can be considered its title, but still, we can charge right on
+            // ahead with placing the poll options in place.
+            const optionContainer = $('<ul class="mw_poll_option_container"></ul>');
+            for(const option of poll['options']) {
+                // Get the percent.  This COULD be undefined, according to the
+                // API.  I don't quite know how you'd do that from the
+                // interface, but it's apparently possible to be in a situation
+                // where an API user is unaware of the vote counts.
+                const percent = option['votes_count'] !== null
+                    ? ((option['votes_count'] / poll['votes_count']) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
+                    : undefined;
+
+                const optionElem = $('<li></li>');
+                if(option['votes_count'] !== null) {
+                    optionElem.attr('title', `${option['votes_count']} vote${option['votes_count'] !== 1 ? 's' : ''}`);
+                }
+
+                // Build up the title area.
+                const optionTitleArea = $('<div class="mw_poll_option_title"></div>');
+                optionElem.append(optionTitleArea);
+
+                // The percent hovers over to the left.  Stylistically, it
+                // should be a fixed width so all the option names line up.
+                // This becomes an inline-block.
+                optionTitleArea.append($(`<span class="mw_poll_option_percent">${percent !== undefined ? percent + '%' : '??%'}</span>`));
+
+                // Then, add the text right afterward.
+                const optionText = $('<span class="mw_poll_option_text"></span>');
+
+                // If I'm getting this right, options are always plaintext from
+                // an HTML standpoint, but they can have emoji tags.
+                optionText.text(option['title']);
+                replaceEmojisInJQueryThingy(optionText, poll['emojis']);
+                optionTitleArea.append(optionText);
+
+                // Then, put a bar in.
+                // TODO: Mimic Mastodon's interface and add another style to
+                // whatever option is in the lead (or multiples if a tie)?
+                // That'd require another pass to mark which option(s) is(are)
+                // in the lead.
+                const bar = $('<div class="mw_poll_option_bar"></div>');
+                bar.css('width', percent !== undefined ? percent + '%' : '1%');
+                optionElem.append(bar);
+
+                optionContainer.append(optionElem);
+            }
+
+            pollContainer.append(optionContainer);
+        } else {
+            // If there's no poll, just remove the container.
+            pollContainer.remove();
         }
 
         // Finally, toss the block on to the end!

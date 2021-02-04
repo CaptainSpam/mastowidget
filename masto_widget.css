@@ -211,6 +211,24 @@ a:active
     border: 2px solid black;
 }
 
+.mw_poll_option_container {
+    list-style-type:none;
+}
+
+.mw_poll_option_percent {
+    display:inline-block;
+    font-weight:bold;
+    width:50px;
+}
+
+.mw_poll_option_bar {
+    height:5px;
+    border-radius:4px;
+    min-width:1%;
+    background-color:#19a1bf;
+    margin:5px 0;
+}
+
 .mw_footerblock {
     font-size:x-small;
     margin:0px 8px 4px;
