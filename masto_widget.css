@@ -229,6 +229,27 @@ a:active
     margin:5px 0;
 }
 
+.mw_info_bar {
+    display:flex;
+    font-size:smaller;
+    margin-top:4px;
+    width:100%;
+}
+
+.mw_info_element {
+    flex-grow:0;
+    margin-right:8px;
+
+}
+
+.mw_info_bar svg {
+    width:16px;
+    height:16px;
+    margin-right:4px;
+    fill:#1d5f6e;
+    vertical-align:bottom;
+}
+
 .mw_footerblock {
     font-size:x-small;
     margin:0px 8px 4px;

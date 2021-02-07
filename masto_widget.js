@@ -185,6 +185,7 @@ function constructPost(postData) {
             </div>
         </div>
         <div class="mw_media_container"></div>
+        <div class="mw_info_bar"></div>
     </div>`);
 
     toReturn.find('.mw_entry_userdisplayname').append(userALink);
@@ -215,6 +216,25 @@ function constructImageAttachment(url, previewUrl, description) {
     }
 
     return toReturn;
+}
+
+function constructInfoBarIcon(type, count) {
+    var title = '';
+    if(type === 'replies') {
+        title = `${count} Repl${count > 1 ? 'ies' : 'y'}`;
+    } else if(type === 'boosts') {
+        title = `${count} Boost${count > 1 ? 's' : ''}`;
+    } else if(type === 'favorites') {
+        title = `${count} Favorite${count > 1 ? 's' : ''}`;
+    }
+
+    return $(`
+    <div class="mw_info_element" title="${title}">
+        <svg viewBox="0 0 24 24">
+            <use xlink:href="#${type}"></use>
+        </svg>
+        ${count}
+    </div>`);
 }
 
 function fetchAccountData() {
@@ -413,6 +433,24 @@ function showAllPosts() {
             pollContainer.remove();
         }
 
+        // Now, do we have any replies, boosts, or favorites to report?
+        const infoBar = entryElem.find('.mw_info_bar');
+        if(data['replies_count'] > 0 || data['reblogs_count'] > 0 || data['favourites_count'] > 0) {
+            // Yes!  Let's add them in!
+            if(data['replies_count'] > 0) {
+                infoBar.append(constructInfoBarIcon('replies', data['replies_count']));
+            }
+            if(data['reblogs_count'] > 0) {
+                infoBar.append(constructInfoBarIcon('boosts', data['reblogs_count']));
+            }
+            if(data['favourites_count'] > 0) {
+                infoBar.append(constructInfoBarIcon('favorites', data['favourites_count']));
+            }
+        } else {
+            // No!  Remove the infobar itself!
+            infoBar.remove();
+        }
+
         // Finally, toss the block on to the end!
         entries.append(entryElem);
 
@@ -437,7 +475,7 @@ function finalizePosts() {
 
 $(document).ready(() => {
     // As this is an iframe, we want the base to be the overall body element.
-    baseElem = $('body');
+    baseElem = $('.mw_body');
     constructPage();
     setMode('loading');
 
