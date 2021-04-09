@@ -105,7 +105,7 @@ function replaceEmojisInJQueryThingy(jq, emojis) {
 
         for(const [shortcode, url] of emojiMap) {
             const emojiCode = `:${shortcode}:`;
-            jq.html(jq.html().replaceAll(emojiCode, `<img class="mw_emoji" src="${url}" alt="${emojiCode}" title="${emojiCode}">`));
+            jq.html((index, oldHtml) => oldHtml.replaceAll(emojiCode, `<img class="mw_emoji" src="${url}" alt="${emojiCode}" title="${emojiCode}">`));
         }
     }
 }
