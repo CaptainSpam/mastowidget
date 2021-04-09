@@ -255,3 +255,12 @@ a:active
     margin:0px 8px 4px;
     text-align:right;
 }
+
+// TODO: Find a way to namespace this to mw_.
+.invisible {
+    display:none;
+}
+
+.ellipsis::after {
+    content:"…";
+}
