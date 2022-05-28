@@ -13,6 +13,13 @@
 const accountUrl = '';
 const statusesUrl = `${accountUrl}/statuses?limit=20`;
 
+// Whether or not the posts auto-reload.  If false, whatever's loaded at first
+// will be what's displayed and no new posts will be loaded.
+const refreshPosts = true;
+// The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
+const refreshPostsRateMs = 1000 * 60 * 5;
+var refreshPostsTimeout;
+
 // This is the base element in which we're putting this.  It will become a
 // jQuery thingy when the document loads.
 var baseElem = undefined;
@@ -281,9 +288,9 @@ function setSpinnerVisible(visible) {
 
 function renderUserData(userData) {
     var aElem = makeAuthorLink(userData);
-    baseElem.find('.mw_userdisplayname').text('Toots by ').append(aElem);
+    baseElem.find('.mw_userdisplayname').empty().text('Toots by ').append(aElem);
 
-    baseElem.find('.mw_summary').append(sanitizeHtmlToJQueryThingy(userData['note']));
+    baseElem.find('.mw_summary').empty().append(sanitizeHtmlToJQueryThingy(userData['note']));
 }
 
 function renderAllPosts(statuses) {
@@ -459,16 +466,19 @@ function renderAllPosts(statuses) {
 }
 
 function renderData(userData, statuses) {
-    // Stop the long-loading timeout, if it's still waiting.
-    clearTimeout(longLoadingTimeout);
-
     setMode('display');
     renderUserData(userData);
     renderAllPosts(statuses);
 }
 
 function fetchData() {
+    // Set the spinner in motion.
     setSpinnerVisible(true);
+
+    // Stop the refresh timer, if we somehow got here with that still running.
+    if(refreshPostsTimeout !== undefined) {
+        clearTimeout(refreshPostsTimeout);
+    }
 
     // jQuery can make promises (as per 3.0), so let's start making promises!
     Promise.all([$.get(accountUrl), $.get(statusesUrl)])
@@ -480,6 +490,16 @@ function fetchData() {
             // Once a fetch is complete, the spinner should probably go away in
             // any case.
             setSpinnerVisible(false);
+
+            // Stop the long-loading timeout, if it's still waiting.
+            if(longLoadingTimeout !== undefined) {
+                clearTimeout(longLoadingTimeout);
+            }
+
+            // Then, start up the refresh timer, if appropriate.
+            if(refreshPosts) {
+                refreshPostsTimeout = setTimeout(fetchData, refreshPostsRateMs);
+            }
         });
 }
 
