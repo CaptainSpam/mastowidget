@@ -1,5 +1,5 @@
 /**
-* Mastowidget, copyright (C)2019-2021 Nicholas Killewald
+* Mastowidget, copyright (C)2019-2022 Nicholas Killewald
 * https://github.com/CaptainSpam/mastowidget
 *
 * This file is distributed under the terms of the MIT License,
@@ -16,9 +16,6 @@ const statusesUrl = `${accountUrl}/statuses?limit=20`;
 // This is the base element in which we're putting this.  It will become a
 // jQuery thingy when the document loads.
 var baseElem = undefined;
-
-var userData = undefined;
-var postData = [];
 
 const loadingText = 'Loading...';
 var longLoadingTimeout;
@@ -237,32 +234,13 @@ function constructInfoBarIcon(type, count) {
     </div>`);
 }
 
-function fetchAccountData() {
-    $.get(accountUrl, '', (data, textStatus, jqXHR) => {
-        // Here comes author data!  And it's in nifty JSON format, too!
-        userData = data;
-
-        fetchStatuses();
-    }).fail(genericFetchError);
-}
-
-function fetchStatuses() {
-    // Status time!
-    $.get(statusesUrl, '', (data, textStatus, jqXHR) => {
-        // Post data should just be an array of, well, post data.
-        postData = data;
-
-        finalizePosts();
-    }).fail(genericFetchError);
-}
-
 function showError(errorText) {
-    setMode(baseElem, 'error');
+    setMode('error');
     const error = baseElem.find('.mw_error');
     error.text(errorText);
 }
 
-function genericFetchError(data) {
+function genericFetchError() {
     // Chances are the browser already dumped an error to console.log in this
     // case, so we don't need to do that here.
     showError('There was some sort of problem fetching data.  If you\'re sure you have the right account API URL, maybe there\'s an issue with the instance at the moment?');
@@ -289,14 +267,20 @@ function setMode(modeString) {
     }
 }
 
-function showUserData() {
+function renderUserData(userData) {
     var aElem = makeAuthorLink(userData);
     baseElem.find('.mw_userdisplayname').text('Toots by ').append(aElem);
 
     baseElem.find('.mw_summary').append(sanitizeHtmlToJQueryThingy(userData['note']));
 }
 
-function showAllPosts() {
+function renderAllPosts(statuses) {
+    if(statuses.length === 0) {
+        // If there's nothing here at all, put up a helpful message.
+        showError('It looks like there aren\'t any public toots on this account.');
+        return;
+    }
+
     var entries = baseElem.find('.mw_contentblock');
 
     // Later, we'll want to be able to update the content (i.e. adding more
@@ -304,7 +288,7 @@ function showAllPosts() {
     // now, let's always assume a complete wipe.
     entries.empty();
 
-    for(const data of postData) {
+    for(const data of statuses) {
         // Build the skeleton post HTML.
         const entryElem = constructPost(data);
 
@@ -462,15 +446,22 @@ function showAllPosts() {
     entries.find('hr').last().remove();
 }
 
-function finalizePosts() {
-    console.log('Found ' + postData.length + ' posts.');
-
+function renderData(userData, statuses) {
     // Stop the long-loading timeout, if it's still waiting.
     clearTimeout(longLoadingTimeout);
 
     setMode('display');
-    showUserData();
-    showAllPosts();
+    renderUserData(userData);
+    renderAllPosts(statuses);
+}
+
+function fetchData() {
+    // jQuery can make promises (as per 3.0), so let's start making promises!
+    Promise.all([$.get(accountUrl), $.get(statusesUrl)])
+        .then(([userData, statuses]) => {
+            console.log('Fetched ' + statuses.length + ' posts.');
+            renderData(userData, statuses);
+        }).catch(genericFetchError);
 }
 
 $(document).ready(() => {
@@ -486,9 +477,8 @@ $(document).ready(() => {
         showError('The accountUrl variable isn\'t defined or is empty; you\'ll need to look that up to use this widget.');
         console.error('accountUrl isn\'t defined or is empty; you\'ll need to look that up to use this.  The variable is defined right near the top of the masto_widget.js file.');
         return;
-    } else {
-        // Quick!  To AJAX!  Start this whole thing in motion!
-        fetchAccountData();
     }
+
+    fetchData();
 });
 
