@@ -120,6 +120,11 @@ function constructPage() {
     baseElem.addClass('mw_container');
 
     const allOfTheHtml = $(`
+    <div class="mw_spinner">
+        <svg viewbox="0 0 26 26">
+            <use xlink:href="#spinner"></use>
+        </svg>
+    </div>
     <div class="mw_loading">${loadingText}</div>
     <div class="mw_error"></div>
     <div class="mw_mainblock">
@@ -265,6 +270,13 @@ function setMode(modeString) {
         baseElem.find('.mw_mainblock').toggle(false);
         baseElem.find('.mw_error').toggle(true);
     }
+}
+
+function setSpinnerVisible(visible) {
+    // This has to remain separate from setMode, as there can be situations
+    // where the spinner is spinning but it isn't in the full-panel "Loading"
+    // mode.
+    baseElem.find('.mw_spinner').toggle(visible);
 }
 
 function renderUserData(userData) {
@@ -456,12 +468,19 @@ function renderData(userData, statuses) {
 }
 
 function fetchData() {
+    setSpinnerVisible(true);
+
     // jQuery can make promises (as per 3.0), so let's start making promises!
     Promise.all([$.get(accountUrl), $.get(statusesUrl)])
         .then(([userData, statuses]) => {
             console.log('Fetched ' + statuses.length + ' posts.');
             renderData(userData, statuses);
-        }).catch(genericFetchError);
+        }).catch(genericFetchError)
+        .finally(() => {
+            // Once a fetch is complete, the spinner should probably go away in
+            // any case.
+            setSpinnerVisible(false);
+        });
 }
 
 $(document).ready(() => {
