@@ -29,6 +29,8 @@ var longLoadingTimeout;
 const longLoadingText = 'Loading (in theory)...';
 const longLoadingDelay = 5000;
 
+var hasLoadedOnce = false;
+
 function makeLink(href, text) {
     // Standard stuff that should go on every link.
     const aElem = $(document.createElement('a'));
@@ -484,11 +486,17 @@ function fetchData() {
     Promise.all([$.get(accountUrl), $.get(statusesUrl)])
         .then(([userData, statuses]) => {
             console.log('Fetched ' + statuses.length + ' posts.');
+            hasLoadedOnce = true;
             renderData(userData, statuses);
-        }).catch(genericFetchError)
-        .finally(() => {
-            // Once a fetch is complete, the spinner should probably go away in
-            // any case.
+        }).catch(() => {
+            if(!hasLoadedOnce) {
+                genericFetchError();
+            }
+            // TODO: If this HAS loaded once, it needs some way to show that
+            // this latest fetch failed, but keep the existing data around.
+        }).finally(() => {
+            // Once a fetch is complete, success or failure, the spinner should
+            // probably go away.
             setSpinnerVisible(false);
 
             // Stop the long-loading timeout, if it's still waiting.
