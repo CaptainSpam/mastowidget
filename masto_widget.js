@@ -548,7 +548,7 @@ function fetchData() {
     // jQuery can make promises (as per 3.0), so let's start making promises!
     Promise.all([$.get(accountUrl), $.get(statusesUrl)])
         .then(async ([userData, statuses]) => {
-            console.log('Fetched ' + statuses.length + ' posts.');
+            console.log(`Fetched ${statuses.length} post${statuses.length !== 1 ? 's' : ''}.`);
 
             // Then, look through each status for any that are replies.  We'll
             // need to do additional fetches to get the contexts for those.
@@ -569,6 +569,7 @@ function fetchData() {
 
             // If there were any, start iterating and fetching some more.  Yes,
             // we do have to fetch each post individually.
+            var repliesFetched = 0;
             if(replyMap.size) {
                 for(const replyId of replyMap.keys()) {
                     replyStatus = await $.get(singleStatusUrl + replyId);
@@ -577,11 +578,16 @@ function fetchData() {
                     // objects.  Sure, they won't be "pure" Mastodon statuss
                     // anymore, but hey.
                     if(replyStatus) {
+                        repliesFetched++;
                         for(const data of replyMap.get(replyId)) {
                             data['in_reply_to_data'] = replyStatus;
                         }
+                    } else {
+                        console.warn(`Error fetching parent post ${replyId}, ignoring...`);
                     }
                 }
+
+                console.log(`Fetched ${repliesFetched} parent post${repliesFetched !== 1 ? 's' : ''}.`);
             }
 
             hasLoadedOnce = true;
