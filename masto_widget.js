@@ -6,18 +6,52 @@
 * a copy of which can be found in the repository listed above.
 */
 
-// The account URL is the baseline.  We can get to statuses relative to here.
-// Specifically, this is the API endpoint to access an account's info.  The
-// usual format will be 'https://<INSTANCE>/api/v1/accounts/<ID>'.  You'll need
-// to figure out your numeric ID on the instance to use this.
-const accountUrl = '';
-const statusesUrl = `${accountUrl}/statuses?limit=20`;
+/* --- STUFF YOU NEED TO CHANGE STARTS HERE --- */
 
-// Whether or not the posts auto-reload.  If false, whatever's loaded at first
-// will be what's displayed and no new posts will be loaded.
+/**
+ * The base instance URL.  This is where your instance is; for example,
+ * 'https://mastodon.social'.  If the protocol (http or https) is absent, this
+ * script will assume you meant https.  I'd be surprised if there's all that
+ * many instances out there that aren't on https.
+ */
+const instanceUrl = '';
+
+/**
+ * Your numeric user ID, as a string.  This is NOT your username!  You'll need
+ * to figure out your numeric ID on the instance to use this.
+ */
+const userId = '';
+
+/* --- STUFF YOU NEED TO CHANGE ENDS HERE --- */
+
+/* --- STUFF THAT'S OPTIONAL TO CHANGE STARTS HERE --- */
+
+/**
+ * Whether or not the posts auto-reload.  If false, whatever's loaded at first
+ * will be what's displayed and no new posts will be loaded.
+ */
 const refreshPosts = true;
-// The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
+
+/**
+ * The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
+ **/
 const refreshPostsRateMs = 1000 * 60 * 5;
+
+/* --- STUFF THAT'S OPTIONAL TO CHANGE ENDS HERE --- */
+
+// The API base.  This also serves the purpose of normalizing the instance URL
+// to ensure it has the protocol (http or https) and ends with a slash.
+const apiBase = `${(instanceUrl.startsWith('http://') || instanceUrl.startsWith('https://')) ? instanceUrl : 'https://' + instanceUrl}${instanceUrl.endsWith('/') ? '' : '/'}api/v1/`;
+
+// The base account URL.  By itself, this is the API endpoint to access account
+// info (so, your display name, your avatar icon, etc).  This is also the base
+// for the endpoint to fetch a list of your most recent statuses.
+const accountUrl = `${apiBase}accounts/${userId}/`;
+
+// The URL from which we'll be fetching a list of statuses.  This uses
+// accountUrl as a base.
+const statusesUrl = `${accountUrl}statuses?limit=20`;
+
 var refreshPostsTimeout;
 
 // This is the base element in which we're putting this.  It will become a
@@ -520,9 +554,9 @@ $(document).ready(() => {
     baseElem.css('visibility', 'visible');
 
     // So, where do we start?
-    if(!accountUrl) {
-        showError('The accountUrl variable isn\'t defined or is empty; you\'ll need to look that up to use this widget.');
-        console.error('accountUrl isn\'t defined or is empty; you\'ll need to look that up to use this.  The variable is defined right near the top of the masto_widget.js file.');
+    if(!instanceUrl || !userId) {
+        showError('The instanceUrl or userId variables weren\'t defined or are empty; you\'ll need to set those to use this widget.');
+        console.error('At least one of instanceUrl and/or userId aren\'t defined or are empty; you\'ll need to set those to use this.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' STUFF YOU NEED TO CHANGE STARTS HERE comment nearby.');
         return;
     }
 

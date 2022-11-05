@@ -10,7 +10,7 @@
         <div id="leader">
             <p>This is your run-of-the-mill sample page to test if Mastowidget is working properly.  Just dump this in the same directory as the js and css files (and the mastodon_widget.html file), edit the js accordingly, and pop it open in a browser.  Then, you'll see this text and hopefully a widget box elsewhere down the page.</p>
 
-            <p>And by "edit the js accordingly", I mean set the accountUrl variable near the top to the account API endpoint on your instance.  That will generally be in the form of <tt>https://&lt;INSTANCE&gt;/api/v1/accounts/&lt;ID&gt;</tt>, where <tt>&lt;INSTANCE&gt;</tt> is the domain name of your instance and <tt>&lt;ID&gt;</tt> is your account's <em>numeric</em> user ID.</p>
+            <p>And by "edit the js accordingly", I mean set the <tt>instanceUrl</tt> and <tt>userId</tt> variables near the top to the URL of your instance and your <em>numeric</em> user ID, respectively.
 
             <p>The easiest way to get that ID (at time of writing) is to log into the web interface, click your username to get your own timeline, and check the URL in your browser.  If it says something like <tt>https://&lt;INSTANCE&gt;/web/accounts/&lt;ID&gt;</tt>, then, well, there you go, that number at the end is your ID.  If not, and you can't find it any other way, you may need to ask a moderator or admin of the instance.  Mastodon didn't make it easy to find this ID, perhaps with good reason.  This also means you might have a hard time displaying anyone else's statuses other than your own.</p>
 
