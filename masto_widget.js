@@ -52,6 +52,11 @@ const accountUrl = `${apiBase}accounts/${userId}/`;
 // accountUrl as a base.
 const statusesUrl = `${accountUrl}statuses?limit=20`;
 
+// The URL from which we'll fetch data for a single status at a time.  This is
+// for finding the parent toot and its author when we're viewing a toot marked
+// as a reply.  Attach the numeric ID of a status to the end of this.
+const singleStatusUrl = `${apiBase}statuses/`;
+
 var refreshPostsTimeout;
 
 // This is the base element in which we're putting this.  It will become a
@@ -220,6 +225,7 @@ function constructPost(postData) {
             </div>
         </div>
         <div class="mw_entry_container">
+            <div class="mw_reply_container"></div>
             <div class="mw_spoiler">
                 <span class="mw_spoiler_text"></span>
                 <button class="mw_spoiler_button">Show more</button>
@@ -355,6 +361,29 @@ function renderAllPosts(statuses) {
         // If there's any emoji in the data, it (hopefully) means anything
         // mentioned is in use somewhere in the post.
         replaceEmojisInJQueryThingy(content, data['emojis']);
+
+        // Was this a reply?  If so, fill out the reply block.
+        if(data['in_reply_to_id']) {
+            const replyElem = entryElem.find('.mw_reply_container');
+
+            // Note that this will have a reply ID but no reply data if there
+            // was a problem fetching said data.  Adapt!
+            if(data['in_reply_to_data']) {
+                const replyData = data['in_reply_to_data'];
+                const postLink = $('<a>a post</a>');
+                postLink.attr('href', replyData['uri']);
+                const userLink = $('<a></a>');
+                userLink.attr('href', replyData['account']['url']);
+                userLink.text(replyData['account']['display_name']);
+
+                replyElem.append('In reply to ', postLink, ' by ', userLink, '…');
+            } else {
+                replyElem.text('In reply to something (error fetching parent post?)…');
+            }
+
+        } else {
+            entryElem.find('.mw_reply_container').remove();
+        }
 
         // Now, if there's a spoiler/sensitive flag, handle that, too.
         if(data['sensitive']) {
@@ -518,8 +547,43 @@ function fetchData() {
 
     // jQuery can make promises (as per 3.0), so let's start making promises!
     Promise.all([$.get(accountUrl), $.get(statusesUrl)])
-        .then(([userData, statuses]) => {
+        .then(async ([userData, statuses]) => {
             console.log('Fetched ' + statuses.length + ' posts.');
+
+            // Then, look through each status for any that are replies.  We'll
+            // need to do additional fetches to get the contexts for those.
+            // This will be a map of reply IDs to any number of statuses that
+            // need it (a status can only be a reply to one parent, but a parent
+            // can have multiple replies).
+            const replyMap = new Map();
+            for(const data of statuses) {
+                if(data['in_reply_to_id']) {
+                    const replyId = data['in_reply_to_id'];
+                    if(replyMap.has(replyId)) {
+                        replyMap.get(replyId).push(data);
+                    } else {
+                        replyMap.set(replyId, [data]);
+                    }
+                }
+            }
+
+            // If there were any, start iterating and fetching some more.  Yes,
+            // we do have to fetch each post individually.
+            if(replyMap.size) {
+                for(const replyId of replyMap.keys()) {
+                    replyStatus = await $.get(singleStatusUrl + replyId);
+
+                    // With a reply status in hand, staple that into the status
+                    // objects.  Sure, they won't be "pure" Mastodon statuss
+                    // anymore, but hey.
+                    if(replyStatus) {
+                        for(const data of replyMap.get(replyId)) {
+                            data['in_reply_to_data'] = replyStatus;
+                        }
+                    }
+                }
+            }
+
             hasLoadedOnce = true;
             renderData(userData, statuses);
         }).catch(() => {
@@ -556,7 +620,7 @@ $(document).ready(() => {
     // So, where do we start?
     if(!instanceUrl || !userId) {
         showError('The instanceUrl or userId variables weren\'t defined or are empty; you\'ll need to set those to use this widget.');
-        console.error('At least one of instanceUrl and/or userId aren\'t defined or are empty; you\'ll need to set those to use this.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' STUFF YOU NEED TO CHANGE STARTS HERE comment nearby.');
+        console.error('At least one of instanceUrl and/or userId aren\'t defined or are empty; you\'ll need to set those to use this.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' "STUFF YOU NEED TO CHANGE STARTS HERE" comment nearby.');
         return;
     }
 
