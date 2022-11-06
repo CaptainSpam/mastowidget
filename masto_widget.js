@@ -245,10 +245,14 @@ function constructPost(postData) {
     if(postData['reblog'] === null) {
         toReturn.find('.mw_entry_boosting').remove();
         avatar.parent().attr('href', postData['account']['url']);
-        avatar.css('background-image', 'url("' + postData['account']['avatar'] + '")');
+        avatar.css('background-image', 'url("' + postData['account']['avatar'] + '")')
+            .attr('title', `@${postData['account']['acct']}`)
+            .attr('alt', `User icon for ${postData['account']['display_name']}`);
     } else {
         avatar.parent().attr('href', postData['reblog']['account']['url']);
-        avatar.css('background-image', 'url("' + postData['reblog']['account']['avatar'] + '")');
+        avatar.css('background-image', 'url("' + postData['reblog']['account']['avatar'] + '")')
+            .attr('title', `@${postData['reblog']['account']['acct']}`)
+            .attr('alt', `User icon for ${postData['reblog']['account']['display_name']}`);
     }
 
     return toReturn;
@@ -373,9 +377,12 @@ function renderAllPosts(statuses) {
                 const postLink = $('<a>a post</a>');
                 postLink.attr('href', replyData['uri']);
                 const userLink = $('<a></a>');
-                userLink.attr('href', replyData['account']['url']);
+                userLink.attr('href', replyData['account']['url'])
+                    .attr('title', `@${replyData['account']['acct']}`);
                 const userIcon = $('<div class="mw_reply_avatar"></div>');
-                userIcon.css('background-image', 'url("' + replyData['account']['avatar'] + '")');
+                userIcon.css('background-image', 'url("' + replyData['account']['avatar'] + '")')
+                    .attr('alt', `User icon for ${replyData['account']['display_name']}`);
+
                 userLink.append(userIcon, replyData['account']['display_name']);
 
                 replyElem.append('In reply to ', postLink, ' by ', userLink, ':');
