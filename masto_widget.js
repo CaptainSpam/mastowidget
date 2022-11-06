@@ -374,11 +374,13 @@ function renderAllPosts(statuses) {
                 postLink.attr('href', replyData['uri']);
                 const userLink = $('<a></a>');
                 userLink.attr('href', replyData['account']['url']);
-                userLink.text(replyData['account']['display_name']);
+                const userIcon = $('<div class="mw_reply_avatar"></div>');
+                userIcon.css('background-image', 'url("' + replyData['account']['avatar'] + '")');
+                userLink.append(userIcon, replyData['account']['display_name']);
 
-                replyElem.append('In reply to ', postLink, ' by ', userLink, '…');
+                replyElem.append('In reply to ', postLink, ' by ', userLink, ':');
             } else {
-                replyElem.text('In reply to something (error fetching parent post?)…');
+                replyElem.text('In reply to something (error fetching parent post?):');
             }
 
         } else {

@@ -192,6 +192,17 @@ a:active
     background-size:contain;
 }
 
+.mw_reply_avatar
+{
+    display:inline-block;
+    width:24px;
+    height:24px;
+    margin:0 4px;
+    background-size:contain;
+    border-radius:12px;
+    vertical-align:middle;
+}
+
 .mw_entry_content
 {
     max-width:100%;
