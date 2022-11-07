@@ -357,23 +357,32 @@ function renderAllPosts(statuses) {
         // Build the skeleton post HTML.
         const entryElem = constructPost(data);
 
+        // Wait!  Don't touch that dial!  Is this a boost (a "reblog", as the
+        // API likes to call it)?  If so, the REAL content will be in there.  As
+        // far as I can tell, a reblog won't have any "base" content (that is,
+        // data['content'] will be an empty string), as I don't see anything in
+        // the UI to allow for "boost and also add my own text", and that makes
+        // sense because now that I type that out, that sounds more like just a
+        // reply than a boost.
+        const activeData = data['reblog'] ?? data;
+
         // Then, toss sanitized content in.
-        const content = sanitizeHtmlToJQueryThingy(data['content']);
+        const content = sanitizeHtmlToJQueryThingy(activeData['content']);
         const contentElem = entryElem.find('.mw_entry_content');
         contentElem.append(content);
 
         // If there's any emoji in the data, it (hopefully) means anything
         // mentioned is in use somewhere in the post.
-        replaceEmojisInJQueryThingy(content, data['emojis']);
+        replaceEmojisInJQueryThingy(content, activeData['emojis']);
 
         // Was this a reply?  If so, fill out the reply block.
-        if(data['in_reply_to_id']) {
+        if(activeData['in_reply_to_id']) {
             const replyElem = entryElem.find('.mw_reply_container');
 
             // Note that this will have a reply ID but no reply data if there
             // was a problem fetching said data.  Adapt!
-            if(data['in_reply_to_data']) {
-                const replyData = data['in_reply_to_data'];
+            if(activeData['in_reply_to_data']) {
+                const replyData = activeData['in_reply_to_data'];
                 const postLink = $('<a>a post</a>');
                 postLink.attr('href', replyData['uri']);
                 const userLink = $('<a></a>');
@@ -395,19 +404,19 @@ function renderAllPosts(statuses) {
         }
 
         // Now, if there's a spoiler/sensitive flag, handle that, too.
-        if(data['sensitive']) {
+        if(activeData['sensitive']) {
             // Hide the actual entry.
             const spoilerableElem = entryElem.find('.mw_spoilerable');
             spoilerableElem.toggle(false);
 
-            if(data['spoiler_text']) {
+            if(activeData['spoiler_text']) {
                 // Add in some spoiler text, if applicable.  This can be empty.
                 // This is not HTML, as far as I can tell.
                 const spoilerText = entryElem.find('.mw_spoiler_text');
-                spoilerText.text(data['spoiler_text']);
+                spoilerText.text(activeData['spoiler_text']);
 
                 // Emojify it, too.
-                replaceEmojisInJQueryThingy(spoilerText, data['emojis']);
+                replaceEmojisInJQueryThingy(spoilerText, activeData['emojis']);
             }
 
             // Then, make the button do something.
@@ -426,7 +435,7 @@ function renderAllPosts(statuses) {
 
         // If we've got any media to attach, attach it to the appropriate
         // container.
-        const media = data['media_attachments'];
+        const media = activeData['media_attachments'];
 
         // Keep track of how much media we've added.  If there's none, or all
         // the attachments are things we can't handle, remove the media
@@ -453,8 +462,8 @@ function renderAllPosts(statuses) {
 
         // Is there a poll?  Toss that in, too.
         const pollContainer = entryElem.find('.mw_poll_container');
-        if(data['poll']) {
-            const poll = data['poll'];
+        if(activeData['poll']) {
+            const poll = activeData['poll'];
 
             // Funny, polls don't have titles.  Well, I guess the entire toot
             // can be considered its title, but still, we can charge right on
@@ -512,16 +521,16 @@ function renderAllPosts(statuses) {
 
         // Now, do we have any replies, boosts, or favorites to report?
         const infoBar = entryElem.find('.mw_info_bar');
-        if(data['replies_count'] > 0 || data['reblogs_count'] > 0 || data['favourites_count'] > 0) {
+        if(activeData['replies_count'] > 0 || activeData['reblogs_count'] > 0 || activeData['favourites_count'] > 0) {
             // Yes!  Let's add them in!
-            if(data['replies_count'] > 0) {
-                infoBar.append(constructInfoBarIcon('replies', data['replies_count']));
+            if(activeData['replies_count'] > 0) {
+                infoBar.append(constructInfoBarIcon('replies', activeData['replies_count']));
             }
-            if(data['reblogs_count'] > 0) {
-                infoBar.append(constructInfoBarIcon('boosts', data['reblogs_count']));
+            if(activeData['reblogs_count'] > 0) {
+                infoBar.append(constructInfoBarIcon('boosts', activeData['reblogs_count']));
             }
-            if(data['favourites_count'] > 0) {
-                infoBar.append(constructInfoBarIcon('favorites', data['favourites_count']));
+            if(activeData['favourites_count'] > 0) {
+                infoBar.append(constructInfoBarIcon('favorites', activeData['favourites_count']));
             }
         } else {
             // No!  Remove the infobar itself!
@@ -574,7 +583,20 @@ function fetchData() {
                         replyMap.set(replyId, [data]);
                     }
                 }
+
+                // Same thing, but also for boosts ("reblogs").  Those can also
+                // be replies, and they ALSO have their own data.  We're not
+                // doing replies-to-replies yet, though.
+                if(data['reblog'] && data['reblog']['in_reply_to_id']) {
+                    const replyId = data['reblog']['in_reply_to_id'];
+                    if(replyMap.has(replyId)) {
+                        replyMap.get(replyId).push(data['reblog']);
+                    } else {
+                        replyMap.set(replyId, [data['reblog']]);
+                    }
+                }
             }
+
 
             // If there were any, start iterating and fetching some more.  Yes,
             // we do have to fetch each post individually.
