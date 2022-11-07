@@ -383,11 +383,9 @@ function renderAllPosts(statuses) {
             // was a problem fetching said data.  Adapt!
             if(activeData['in_reply_to_data']) {
                 const replyData = activeData['in_reply_to_data'];
-                const postLink = $('<a>a post</a>');
-                postLink.attr('href', replyData['uri']);
-                const userLink = $('<a></a>');
-                userLink.attr('href', replyData['account']['url'])
-                    .attr('title', `@${replyData['account']['acct']}`);
+                const postLink = makeLink(replyData['uri'], 'a post');
+                const userLink = makeLink(replyData['account']['url']);
+                userLink.attr('title', `@${replyData['account']['acct']}`);
                 const userIcon = $('<div class="mw_reply_avatar"></div>');
                 userIcon.css('background-image', 'url("' + replyData['account']['avatar'] + '")')
                     .attr('alt', `User icon for ${replyData['account']['display_name']}`);
