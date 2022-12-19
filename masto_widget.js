@@ -19,8 +19,22 @@ const instanceUrl = '';
 /**
  * Your numeric user ID, as a string.  This is NOT your username!  You'll need
  * to figure out your numeric ID on the instance to use this.
+ *
+ * Either this or userName MUST be specified.  If both are specified, userId
+ * takes precedence.
  */
 const userId = '';
+
+/**
+ * Your user name, as a string.  This is your named account on the instance, in
+ * case you don't know your numeric user ID off the top of your head.  You can
+ * include a leading @ if you want (i.e. "@username"), but don't include an
+ * instance domain name (i.e. "@username@instance.social").
+ *
+ * Either this or userId MUST be specified.  If both are specified, userId
+ * takes precedence.
+ */
+const userName = '';
 
 /* --- STUFF YOU NEED TO CHANGE ENDS HERE --- */
 
@@ -42,15 +56,6 @@ const refreshPostsRateMs = 1000 * 60 * 5;
 // The API base.  This also serves the purpose of normalizing the instance URL
 // to ensure it has the protocol (http or https) and ends with a slash.
 const apiBase = `${(instanceUrl.startsWith('http://') || instanceUrl.startsWith('https://')) ? instanceUrl : 'https://' + instanceUrl}${instanceUrl.endsWith('/') ? '' : '/'}api/v1/`;
-
-// The base account URL.  By itself, this is the API endpoint to access account
-// info (so, your display name, your avatar icon, etc).  This is also the base
-// for the endpoint to fetch a list of your most recent statuses.
-const accountUrl = `${apiBase}accounts/${userId}/`;
-
-// The URL from which we'll be fetching a list of statuses.  This uses
-// accountUrl as a base.
-const statusesUrl = `${accountUrl}statuses?limit=20`;
 
 // The URL from which we'll fetch data for a single status at a time.  This is
 // for finding the parent toot and its author when we're viewing a toot marked
@@ -570,9 +575,17 @@ function fetchData() {
         clearTimeout(refreshPostsTimeout);
     }
 
-    // jQuery can make promises (as per 3.0), so let's start making promises!
-    Promise.all([$.get(accountUrl), $.get(statusesUrl)])
-        .then(async ([userData, statuses]) => {
+    var accountUrl = userId
+        ? `${apiBase}accounts/${userId}`
+        : `${apiBase}accounts/lookup?acct=${userName}`;
+
+    var userData = undefined;
+
+    Promise.resolve($.get(accountUrl))
+        .then((fetchedUserData) => {
+            userData = fetchedUserData;
+            return Promise.resolve($.get(`${apiBase}accounts/${userData['id']}/statuses?limit=20`));
+        }).then(async (statuses) => {
             console.log(`Fetched ${statuses.length} post${statuses.length !== 1 ? 's' : ''}.`);
 
             // Then, look through each status for any that are replies.  We'll
@@ -630,10 +643,44 @@ function fetchData() {
 
             hasLoadedOnce = true;
             renderData(userData, statuses);
-        }).catch(() => {
-            if(!hasLoadedOnce) {
-                genericFetchError();
+        }).catch((data) => {
+            if(data) {
+                switch(data['status']) {
+                    case 401:
+                        // This needs auth, for some reason?
+                        if(!hasLoadedOnce) {
+                            showError(`The instance claims that ${userId ? 'user ' + userId : userName} requires authentication to view their statuses, which this widget can't handle.`);
+                        }
+
+                        console.error(`The instance claims that ${userId ? 'user ' + userId : userName} requires authentication to view their statuses, which this widget can't handle.  This might be something you can change in settings on the Mastodon instance itself.`);
+                        break;
+
+                    case 404:
+                        // Couldn't find the user in question.
+                        if(!hasLoadedOnce) {
+                            showError(`The instance couldn't find any user ${userId ? 'with an ID of ' + userId : 'named ' + userName}.`);
+                        }
+
+                        console.error(`The instance couldn't find any user ${userId ? 'with an ID of ' + userId : 'named ' + userName}.`);
+                        break;
+
+                    default:
+                        // Something else happened.
+                        if(!hasLoadedOnce) {
+                            genericFetchError();
+                        }
+
+                        console.error('Some sort of error happened that this widget doesn\'t know how to handle.  We got this data, though:', data);
+                        break;
+                }
+            } else {
+                if(!hasLoadedOnce) {
+                    genericFetchError();
+                }
+
+                console.error('Some sort of error happened that didn\'t even return useful data for debugging.');
             }
+
             // TODO: If this HAS loaded once, it needs some way to show that
             // this latest fetch failed, but keep the existing data around.
         }).finally(() => {
@@ -662,12 +709,28 @@ $(document).ready(() => {
     baseElem.css('visibility', 'visible');
 
     // So, where do we start?
-    if(!instanceUrl || !userId) {
-        showError('The instanceUrl or userId variables weren\'t defined or are empty; you\'ll need to set those to use this widget.');
-        console.error('At least one of instanceUrl and/or userId aren\'t defined or are empty; you\'ll need to set those to use this.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' "STUFF YOU NEED TO CHANGE STARTS HERE" comment nearby.');
+    if(!instanceUrl) {
+        showError('The instanceUrl variable wasn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this widget.');
+        console.error('instanceUrl isn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' "STUFF YOU NEED TO CHANGE STARTS HERE" comment nearby.');
+        setSpinnerVisible(false);
         return;
     }
 
+    if(!userName && !userId) {
+        showError('Neither the userName nor userId variables are defined or both are empty; you\'ll need to set at least one of those to use this widget.');
+        console.error('Neither userName nor userId are defined or not-empty; you\'ll need to set one or the other to use this.  Use userId if you know your numeric user ID on the instance or userName if you don\'t.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' "STUFF YOU NEED TO CHANGE STARTS HERE" comment nearby.');
+        setSpinnerVisible(false);
+        return;
+    }
+
+    if(!userId && userName.lastIndexOf('@') > 0) {
+        showError('userName appears to have an instance domain name in it; just give that your username on the instance, not the full @user@instance syntax.');
+        console.error('userName shouldn\'t have an instance domain in it; if your Mastodon account is @user@instance.social, just make that "user" or "@user", not "@user@instance.social".');
+        setSpinnerVisible(false);
+        return;
+    }
+
+    // Good, we've passed all the checks, let's fetch some data!
     fetchData();
 });
 
