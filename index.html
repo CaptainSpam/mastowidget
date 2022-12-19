@@ -10,9 +10,7 @@
         <div id="leader">
             <p>This is your run-of-the-mill sample page to test if Mastowidget is working properly.  Just dump this in the same directory as the js and css files (and the mastodon_widget.html file), edit the js accordingly, and pop it open in a browser.  Then, you'll see this text and hopefully a widget box elsewhere down the page.</p>
 
-            <p>And by "edit the js accordingly", I mean set the <tt>instanceUrl</tt> and <tt>userId</tt> variables near the top to the URL of your instance and your <em>numeric</em> user ID, respectively.
-
-            <p>The easiest way to get that ID (at time of writing) is to log into the web interface, click your username to get your own timeline, and check the URL in your browser.  If it says something like <tt>https://&lt;INSTANCE&gt;/web/accounts/&lt;ID&gt;</tt>, then, well, there you go, that number at the end is your ID.  If not, and you can't find it any other way, you may need to ask a moderator or admin of the instance.  Mastodon didn't make it easy to find this ID, perhaps with good reason.  This also means you might have a hard time displaying anyone else's statuses other than your own.</p>
+            <p>And by "edit the js accordingly", I mean set the <tt>instanceUrl</tt> vairabls with the URL of your instance and either the <tt>userId</tt> or <tt>userName</tt> variables to your <em>numeric</em> user ID or username, respectively.  If you don't know your numeric ID, go with <tt>userName</tt>.  They both should work.  If you give both, <tt>userId</tt> takes precedence.</p>
 
             <p>This is still relatively early code.  Most errors won't be displayed, and not everything's going to work yet.  Use this at your own risk, I'm not offering any guarantees here.</p>
 
