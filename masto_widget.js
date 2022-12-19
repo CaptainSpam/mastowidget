@@ -222,6 +222,8 @@ function constructPost(postData) {
                 <div class="mw_entry_date">
                     <a rel="nofollow noopener noreferrer" href="${postUrl}" title="${date}">${date.toLocaleString()}</a>
                 </div>
+                <div class="mw_entry_edit_date">
+                </div>
             </div>
         </div>
         <div class="mw_entry_container">
@@ -240,6 +242,13 @@ function constructPost(postData) {
     </div>`);
 
     toReturn.find('.mw_entry_userdisplayname').append(userALink);
+
+    var editDate = undefined;
+    if(postData['edited_at']) {
+        toReturn.find('.mw_entry_edit_date').append(`(last edited ${new Date(postData['edited_at']).toLocaleString()})`);
+    } else {
+        toReturn.find('.mw_entry_edit_date').remove();
+    }
 
     const avatar = toReturn.find('.mw_entry_avatar');
     if(postData['reblog'] === null) {
