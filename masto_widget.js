@@ -44,8 +44,7 @@ const config = {
     /**
      * The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
      **/
-    refreshPostsRateMs: 1000 * 60 * 5;
-
+    refreshPostsRateMs: 1000 * 60 * 5,
 };
 
 // The API base.  This also serves the purpose of normalizing the instance URL
