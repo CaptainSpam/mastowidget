@@ -6,56 +6,51 @@
 * a copy of which can be found in the repository listed above.
 */
 
-/* --- STUFF YOU NEED TO CHANGE STARTS HERE --- */
+// Your all-purpose configgy stuff.
+const config = {
+    /**
+     * The base instance URL.  This is where your instance is; for example,
+     * 'https://mastodon.social'.  If the protocol (http or https) is absent,
+     * this script will assume you meant https.  I'd be surprised if there's all
+     * that many instances out there that aren't on https.
+     */
+    instanceUrl: '',
+    /**
+     * Your numeric user ID, as a string.  This is NOT your username!  You'll
+     * need to figure out your numeric ID on the instance to use this.  If you
+     * don't know what I'm talking about, just leave this blank and use
+     * userName.
+     *
+     * Either this or userName MUST be specified.  If both are specified, userId
+     * takes precedence.
+     */
+    userId: '',
+    /**
+     * Your user name, as a string.  This is your named account on the instance,
+     * in case you don't know your numeric user ID off the top of your head.
+     * You can include a leading @ if you want (i.e. "@username"), but don't
+     * include an instance domain name (i.e. "@username@instance.social").
+     *
+     * Either this or userId MUST be specified.  If both are specified, userId
+     * takes precedence.
+     */
+    userName: '',
 
-/**
- * The base instance URL.  This is where your instance is; for example,
- * 'https://mastodon.social'.  If the protocol (http or https) is absent, this
- * script will assume you meant https.  I'd be surprised if there's all that
- * many instances out there that aren't on https.
- */
-const instanceUrl = '';
+    /**
+     * Whether or not the posts auto-reload.  If false, whatever's loaded at
+     * first will be what's displayed and no new posts will be loaded.
+     */
+    refreshPosts: true,
+    /**
+     * The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
+     **/
+    refreshPostsRateMs: 1000 * 60 * 5;
 
-/**
- * Your numeric user ID, as a string.  This is NOT your username!  You'll need
- * to figure out your numeric ID on the instance to use this.
- *
- * Either this or userName MUST be specified.  If both are specified, userId
- * takes precedence.
- */
-const userId = '';
-
-/**
- * Your user name, as a string.  This is your named account on the instance, in
- * case you don't know your numeric user ID off the top of your head.  You can
- * include a leading @ if you want (i.e. "@username"), but don't include an
- * instance domain name (i.e. "@username@instance.social").
- *
- * Either this or userId MUST be specified.  If both are specified, userId
- * takes precedence.
- */
-const userName = '';
-
-/* --- STUFF YOU NEED TO CHANGE ENDS HERE --- */
-
-/* --- STUFF THAT'S OPTIONAL TO CHANGE STARTS HERE --- */
-
-/**
- * Whether or not the posts auto-reload.  If false, whatever's loaded at first
- * will be what's displayed and no new posts will be loaded.
- */
-const refreshPosts = true;
-
-/**
- * The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
- **/
-const refreshPostsRateMs = 1000 * 60 * 5;
-
-/* --- STUFF THAT'S OPTIONAL TO CHANGE ENDS HERE --- */
+};
 
 // The API base.  This also serves the purpose of normalizing the instance URL
 // to ensure it has the protocol (http or https) and ends with a slash.
-const apiBase = `${(instanceUrl.startsWith('http://') || instanceUrl.startsWith('https://')) ? instanceUrl : 'https://' + instanceUrl}${instanceUrl.endsWith('/') ? '' : '/'}api/v1/`;
+const apiBase = `${(config.instanceUrl.startsWith('http://') || config.instanceUrl.startsWith('https://')) ? config.instanceUrl : 'https://' + config.instanceUrl}${config.instanceUrl.endsWith('/') ? '' : '/'}api/v1/`;
 
 // The URL from which we'll fetch data for a single status at a time.  This is
 // for finding the parent toot and its author when we're viewing a toot marked
@@ -575,9 +570,9 @@ function fetchData() {
         clearTimeout(refreshPostsTimeout);
     }
 
-    var accountUrl = userId
-        ? `${apiBase}accounts/${userId}`
-        : `${apiBase}accounts/lookup?acct=${userName}`;
+    var accountUrl = config.userId
+        ? `${apiBase}accounts/${config.userId}`
+        : `${apiBase}accounts/lookup?acct=${config.userName}`;
 
     var userData = undefined;
 
@@ -649,19 +644,19 @@ function fetchData() {
                     case 401:
                         // This needs auth, for some reason?
                         if(!hasLoadedOnce) {
-                            showError(`The instance claims that ${userId ? 'user ' + userId : userName} requires authentication to view their statuses, which this widget can't handle.`);
+                            showError(`The instance claims that ${config.userId ? 'user ' + config.userId : config.userName} requires authentication to view their statuses, which this widget can't handle.`);
                         }
 
-                        console.error(`The instance claims that ${userId ? 'user ' + userId : userName} requires authentication to view their statuses, which this widget can't handle.  This might be something you can change in settings on the Mastodon instance itself.`);
+                        console.error(`The instance claims that ${config.userId ? 'user ' + config.userId : config.userName} requires authentication to view their statuses, which this widget can't handle.  This might be something you can change in settings on the Mastodon instance itself.`);
                         break;
 
                     case 404:
                         // Couldn't find the user in question.
                         if(!hasLoadedOnce) {
-                            showError(`The instance couldn't find any user ${userId ? 'with an ID of ' + userId : 'named ' + userName}.`);
+                            showError(`The instance couldn't find any user ${config.userId ? 'with an ID of ' + config.userId : 'named ' + config.userName}.`);
                         }
 
-                        console.error(`The instance couldn't find any user ${userId ? 'with an ID of ' + userId : 'named ' + userName}.`);
+                        console.error(`The instance couldn't find any user ${config.userId ? 'with an ID of ' + config.userId : 'named ' + config.userName}.`);
                         break;
 
                     default:
@@ -694,8 +689,8 @@ function fetchData() {
             }
 
             // Then, start up the refresh timer, if appropriate.
-            if(refreshPosts) {
-                refreshPostsTimeout = setTimeout(fetchData, refreshPostsRateMs);
+            if(config.refreshPosts) {
+                refreshPostsTimeout = setTimeout(fetchData, config.refreshPostsRateMs);
             }
         });
 }
@@ -709,23 +704,23 @@ $(document).ready(() => {
     baseElem.css('visibility', 'visible');
 
     // So, where do we start?
-    if(!instanceUrl) {
-        showError('The instanceUrl variable wasn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this widget.');
-        console.error('instanceUrl isn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' "STUFF YOU NEED TO CHANGE STARTS HERE" comment nearby.');
+    if(!config.instanceUrl) {
+        showError('The instanceUrl config variable wasn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this widget.');
+        console.error('config.instanceUrl isn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this.  The variables are defined in the config const right near the top of the masto_widget.js file.');
         setSpinnerVisible(false);
         return;
     }
 
-    if(!userName && !userId) {
-        showError('Neither the userName nor userId variables are defined or both are empty; you\'ll need to set at least one of those to use this widget.');
-        console.error('Neither userName nor userId are defined or not-empty; you\'ll need to set one or the other to use this.  Use userId if you know your numeric user ID on the instance or userName if you don\'t.  The variables are defined right near the top of the masto_widget.js file, in a section with a big ol\' "STUFF YOU NEED TO CHANGE STARTS HERE" comment nearby.');
+    if(!config.userName && !config.userId) {
+        showError('Neither the userName nor userId config variables are defined or both are empty; you\'ll need to set at least one of those to use this widget.');
+        console.error('Neither config.userName nor congif.userId are defined or not-empty; you\'ll need to set one or the other to use this.  Use userId if you know your numeric user ID on the instance or userName if you don\'t.  The variables are defined in the config const right near the top of the masto_widget.js file.');
         setSpinnerVisible(false);
         return;
     }
 
-    if(!userId && userName.lastIndexOf('@') > 0) {
+    if(!config.userId && config.userName.lastIndexOf('@') > 0) {
         showError('userName appears to have an instance domain name in it; just give that your username on the instance, not the full @user@instance syntax.');
-        console.error('userName shouldn\'t have an instance domain in it; if your Mastodon account is @user@instance.social, just make that "user" or "@user", not "@user@instance.social".');
+        console.error('config.userName shouldn\'t have an instance domain in it; if your Mastodon account is @user@instance.social, just make that "user" or "@user", not "@user@instance.social".');
         setSpinnerVisible(false);
         return;
     }
