@@ -13,48 +13,111 @@ const config = {
      * 'https://mastodon.social'.  If the protocol (http or https) is absent,
      * this script will assume you meant https.  I'd be surprised if there's all
      * that many instances out there that aren't on https.
+     *
+     * This may be empty if userName has a full domain in it.  However, if for
+     * some reason you ARE on an instance that doesn't use https, you'll need
+     * to give that URL here and use the username-only format for userName.
      */
     instanceUrl: '',
     /**
-     * Your numeric user ID, as a string.  This is NOT your username!  You'll
-     * need to figure out your numeric ID on the instance to use this.  If you
-     * don't know what I'm talking about, just leave this blank and use
-     * userName.
+     * Your user name, as a string.  This is either your named account on the
+     * instance (i.e. @username) OR your fully qualified username-and-instance-
+     * domain combo (i.e. @username@instance.social).  You can leave off the
+     * leading @ if you want.
      *
-     * Either this or userName MUST be specified.  If both are specified, userId
-     * takes precedence.
-     */
-    userId: '',
-    /**
-     * Your user name, as a string.  This is your named account on the instance,
-     * in case you don't know your numeric user ID off the top of your head.
-     * You can include a leading @ if you want (i.e. "@username"), but don't
-     * include an instance domain name (i.e. "@username@instance.social").
-     *
-     * Either this or userId MUST be specified.  If both are specified, userId
-     * takes precedence.
+     * If this has a full domain name in it, this takes precedence over
+     * instanceUrl.  If not, instanceUrl is required.
      */
     userName: '',
 
     /**
      * Whether or not the posts auto-reload.  If false, whatever's loaded at
-     * first will be what's displayed and no new posts will be loaded.
+     * first will be all what's displayed and no new posts will be loaded.
      */
     refreshPosts: true,
     /**
      * The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
-     **/
+     */
     refreshPostsRateMs: 1000 * 60 * 5,
 };
 
-// The API base.  This also serves the purpose of normalizing the instance URL
-// to ensure it has the protocol (http or https) and ends with a slash.
-const apiBase = `${(config.instanceUrl.startsWith('http://') || config.instanceUrl.startsWith('https://')) ? config.instanceUrl : 'https://' + config.instanceUrl}${config.instanceUrl.endsWith('/') ? '' : '/'}api/v1/`;
+function normalizeConfigUrl(url) {
+    if(!url) {
+        return undefined;
+    }
+
+    var normalizedUrl = url.startsWith('http://') || url.startsWith('https://')
+        ? url
+        : `https://${url}`;
+
+    if(normalizedUrl.endsWith('/')) {
+        normalizedUrl = normalizedUrl.substring(0, normalizedUrl.length - 1);
+    }
+
+    return normalizedUrl;
+}
+
+// Check over the username for validity and extract the actual name part and the
+// instance URL from it if appropriate.  Imma just go ahead and abuse JavaScript
+// function definitions to get this to do what I want.
+const [normalizedUserName, normalizedInstanceUrl, isUserNameValid] = (() => {
+    // The username is valid if it:
+    //
+    // 1. Has no @s (name as given, use config.instanceUrl).
+    // 2. Has exactly one @ as the first character (name as given with that @
+    //    chopped off, use config.instanceUrl).
+    // 3. Has exactly one @ as anything but the last character (name as whatever
+    //    is before the @, extract instance URL).
+    // 4. Has exactly two @s, one as the first character and one as anything
+    //    between the THIRD character and the character before the last (name as
+    //    whatever is between the @s, extract instance URL).
+    //
+    // Any other case is invalid (@ at the end, @ at the start even after
+    // chopping the first off, too many @s).
+    var ats = 0;
+    for(const c of config.userName) {
+        if(c === '@') {
+            ats++;
+        }
+    }
+
+    const firstAtIndex = config.userName.indexOf('@');
+
+    if(ats === 0) {
+        // Case 1: No @s.
+        return [config.userName, normalizeConfigUrl(config.instanceUrl), true];
+    }
+
+    if(ats === 1) {
+        if(firstAtIndex === 0) {
+            // Case 2: One @, at the start.
+            return [config.userName.substring(1), normalizeConfigUrl(config.instanceUrl), true];
+        }
+
+        if(firstAtIndex < config.userName.length - 1) {
+            // Case 3: One @, anywhere but the end.
+            return [config.userName.substring(0, firstAtIndex), `https://${config.userName.substring(firstAtIndex + 1)}`, true];
+        }
+    }
+
+    if(ats === 2 && firstAtIndex === 0) {
+        const secondAtIndex = config.userName.indexOf('@', 1);
+        if(secondAtIndex > 1 && secondAtIndex < config.userName.length - 1) {
+            // Case 4: Two @s in reasonable positions.
+            return [config.userName.substring(1, secondAtIndex), `https://${config.userName.substring(secondAtIndex + 1)}`, true];
+        }
+    }
+
+    // Nothing else matched, so this username must be invalid.
+    return [config.userName, normalizeConfigUrl(config.instanceUrl), false];
+})();
+
+const apiBase = `${normalizedInstanceUrl}/api/v1/`;
 
 // The URL from which we'll fetch data for a single status at a time.  This is
 // for finding the parent toot and its author when we're viewing a toot marked
 // as a reply.  Attach the numeric ID of a status to the end of this.
-const singleStatusUrl = `${apiBase}statuses/`;
+const singleStatusUrl = `${apiBase}/statuses/`;
 
 var refreshPostsTimeout;
 
@@ -569,9 +632,7 @@ function fetchData() {
         clearTimeout(refreshPostsTimeout);
     }
 
-    var accountUrl = config.userId
-        ? `${apiBase}accounts/${config.userId}`
-        : `${apiBase}accounts/lookup?acct=${config.userName}`;
+    var accountUrl = `${apiBase}accounts/lookup?acct=${normalizedUserName}`;
 
     var userData = undefined;
 
@@ -643,19 +704,19 @@ function fetchData() {
                     case 401:
                         // This needs auth, for some reason?
                         if(!hasLoadedOnce) {
-                            showError(`The instance claims that ${config.userId ? 'user ' + config.userId : config.userName} requires authentication to view their statuses, which this widget can't handle.`);
+                            showError(`The instance claims that ${normalizedUserName} requires authentication to view their statuses, which this widget can't handle.`);
                         }
 
-                        console.error(`The instance claims that ${config.userId ? 'user ' + config.userId : config.userName} requires authentication to view their statuses, which this widget can't handle.  This might be something you can change in settings on the Mastodon instance itself.`);
+                        console.error(`The instance claims that ${normalizedUserName} requires authentication to view their statuses, which this widget can't handle.  This might be something you can change in settings on the Mastodon instance itself.`);
                         break;
 
                     case 404:
                         // Couldn't find the user in question.
                         if(!hasLoadedOnce) {
-                            showError(`The instance couldn't find any user ${config.userId ? 'with an ID of ' + config.userId : 'named ' + config.userName}.`);
+                            showError(`The instance couldn't find any user named ${normalizedUserName}.`);
                         }
 
-                        console.error(`The instance couldn't find any user ${config.userId ? 'with an ID of ' + config.userId : 'named ' + config.userName}.`);
+                        console.error(`The instance couldn't find any user named ${normalizedUserName}.`);
                         break;
 
                     default:
@@ -703,23 +764,23 @@ $(document).ready(() => {
     baseElem.css('visibility', 'visible');
 
     // So, where do we start?
-    if(!config.instanceUrl) {
-        showError('The instanceUrl config variable wasn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this widget.');
-        console.error('config.instanceUrl isn\'t defined or is empty; you\'ll need to set that (and either userId or userName) to use this.  The variables are defined in the config const right near the top of the masto_widget.js file.');
+    if(!normalizedInstanceUrl) {
+        showError('The instanceUrl config variable wasn\'t defined or is empty and the userName config variable didn\'t indicate an instance; you\'ll need to set the instance URL in one of those ways to use this widget.');
+        console.error('config.instanceUrl isn\'t defined or is empty and userName doesn\'t appear to be in user@instance.social format; you\'ll need to do either of those to use this.  The variables are defined in the config const right near the top of the masto_widget.js file.');
         setSpinnerVisible(false);
         return;
     }
 
-    if(!config.userName && !config.userId) {
-        showError('Neither the userName nor userId config variables are defined or both are empty; you\'ll need to set at least one of those to use this widget.');
-        console.error('Neither config.userName nor congif.userId are defined or not-empty; you\'ll need to set one or the other to use this.  Use userId if you know your numeric user ID on the instance or userName if you don\'t.  The variables are defined in the config const right near the top of the masto_widget.js file.');
+    if(!normalizedUserName) {
+        showError('The userName config variable wasn\'t defined or is empty; you\'ll need to set that to use this widget.');
+        console.error('The userName config variable wasn\'t defined or is empty; you\'ll need to set that to use this.  The variable is defined in the config const right near the top of the masto_widget.js file.');
         setSpinnerVisible(false);
         return;
     }
 
-    if(!config.userId && config.userName.lastIndexOf('@') > 0) {
-        showError('userName appears to have an instance domain name in it; just give that your username on the instance, not the full @user@instance syntax.');
-        console.error('config.userName shouldn\'t have an instance domain in it; if your Mastodon account is @user@instance.social, just make that "user" or "@user", not "@user@instance.social".');
+    if(!isUserNameValid) {
+        showError('userName doesn\'t look valid; it should either be just a username or the complete user@instance.social syntax (possibly with a leading @).');
+        console.error('config.userName has some problem with its formatting; valid formats are, for instance, \'user\', \'@user\', \'user@instance.social\', or \'@user@instance.social\'.');
         setSpinnerVisible(false);
         return;
     }
