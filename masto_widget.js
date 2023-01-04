@@ -1,5 +1,5 @@
 /**
-* Mastowidget, copyright (C)2019-2022 Nicholas Killewald
+* Mastowidget, copyright (C)2019-2023 Nicholas Killewald
 * https://github.com/CaptainSpam/mastowidget
 *
 * This file is distributed under the terms of the MIT License,
