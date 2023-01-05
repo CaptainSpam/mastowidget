@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <title>Mastowidget Example Page</title>
+        <meta charset="utf-8" />
+    </head>
+
+    <body>
+        <h1>Mastowidget Example Page</h1>
+
+        <div id="leader">
+            <p>This is your run-of-the-mill example of what Mastowidget will look like.  It's that blue box later down the page (assuming you have JavaScript enabled).  It's pointing to LoadingReadyRun's Mastodon mirror (<tt>@loadingreadyrun@kind.social</tt>), just to pick some arbitrary account.</p>
+
+            <p>Obviously, you'd point it to your own account as need be.  Currently, the only way to do that is in-code, by changing variables in the <tt>config</tt> object on the top of <tt>masto_widget.js</tt>.  There should be plenty of comments to help you out there.</p>
+
+            <p>Yes, this may cause issues later when updates happen.  I'm thinking of how to tackle that.  I'm just not in the mood to overcomplicate things.  After all, this is just one JS file and an HTML file to call it (er... and also some CSS).  It's simple.</p>
+
+            <p>And just as a reminder, this WILL require JavaScript to use.  If you or your users have turned it off, there won't be anything displayed.  Plan accordingly.</p>
+        </div>
+
+        <!-- Oh, incidentally, if you'd like your non-Javascript-using guests to
+             not see the container sitting around, here's a simple fix: -->
+        <noscript>
+            <style>
+                #masto_widget { display:none !important; }
+            </style>
+        </noscript>
+
+        <iframe 
+            id="masto_widget"
+            title="Embedded Mastodon widget"
+            src="masto_widget.html"
+            width="400px"
+            height="520px"
+            style="border:0; margin:24px;"
+            scrolling="no"></iframe>
+    </body>
+</html>
