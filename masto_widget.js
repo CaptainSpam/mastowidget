@@ -39,6 +39,36 @@ const config = {
      * The refresh rate, in ms.  By default, this is 5 minutes.  In ms.
      */
     refreshPostsRateMs: 1000 * 60 * 5,
+
+    /**
+     * Options to filter toots out of fetching.  Yes, all of these CAN be
+     * combined if, for whatever reason, you want to only display pinned toots
+     * with media attachments that are neither replies nor boosts.
+     */
+    fetchOptions: {
+        /** If true, don't display any toots that are replies to other toots. */
+        exclude_replies: false,
+        /** If true, don't display any reblogs (boosts, retoots, etc). */
+        exclude_reblogs: false,
+        /**
+         * If true, ONLY display toots with media attachments.  Be very careful
+         * with this; chances are you don't want this unless you're pointing to
+         * a media-heavy account, but if you do, keep in mind that as of this
+         * writing, not all media types supported by Mastodon itself (including
+         * audio and video) are supported in Mastowidget yet.  I'm working on
+         * it.
+         */
+        only_media: false,
+        /** If true, ONLY display pinned toots. */
+        pinned: false,
+        /**
+         * The number of toots to fetch (and, by extension, display).  This is
+         * clamped to a max of 40, both by this code and the Mastodon server
+         * API.  Defaults to 20.  If invalid (undefined, null, NaN, zero, or
+         * negative), goes back to said default of 20.
+         */
+        limit: 20,
+    }
 };
 
 function normalizeConfigUrl(url) {
@@ -623,6 +653,37 @@ function renderData(userData, statuses) {
     renderAllPosts(statuses);
 }
 
+function makeStatusFetchUrl(userData) {
+    const fetchOptions = config['fetchOptions'] ?? {};
+
+    var baseUrl = `${apiBase}accounts/${userData['id']}/statuses?`;
+
+    // Always put a limit in, just in case.  And clean it up, also just in case.
+    var limit = fetchOptions['limit'] ?? 20;
+    if(isNaN(limit) || limit <= 0) {
+        limit = 20;
+    }
+    limit = Math.min(limit, 40);
+
+    baseUrl = `${baseUrl}limit=${limit}`;
+
+    // Season with flags.
+    if(fetchOptions['exclude_replies']) {
+        baseUrl = `${baseUrl}&exclude_replies=1`;
+    }
+    if(fetchOptions['exclude_reblogs']) {
+        baseUrl = `${baseUrl}&exclude_reblogs=1`;
+    }
+    if(fetchOptions['only_media']) {
+        baseUrl = `${baseUrl}&only_media=1`;
+    }
+    if(fetchOptions['pinned']) {
+        baseUrl = `${baseUrl}&pinned=1`;
+    }
+
+    return baseUrl;
+}
+
 function fetchData() {
     // Set the spinner in motion.
     setSpinnerVisible(true);
@@ -639,7 +700,7 @@ function fetchData() {
     Promise.resolve($.get(accountUrl))
         .then((fetchedUserData) => {
             userData = fetchedUserData;
-            return Promise.resolve($.get(`${apiBase}accounts/${userData['id']}/statuses?limit=20`));
+            return Promise.resolve($.get(makeStatusFetchUrl(userData)));
         }).then(async (statuses) => {
             console.log(`Fetched ${statuses.length} post${statuses.length !== 1 ? 's' : ''}.`);
 
