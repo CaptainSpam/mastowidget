@@ -279,6 +279,7 @@ a:active
 
 .mw_media_spoiler_button
 {
+    background-color: transparent;
     position: absolute;
     top: 0;
     left: 0;
