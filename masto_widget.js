@@ -359,16 +359,73 @@ function constructPost(postData) {
     return toReturn;
 }
 
-function constructImageAttachment(url, previewUrl, description) {
+function constructImageAttachment(mediaData, sensitive) {
     const toReturn = $(`
     <div class="mw_media_item">
-        <a rel="nofollow noopener noreferrer" href="${url}">
-            <img src="${previewUrl}">
+        <a rel="nofollow noopener noreferrer" href="${mediaData['url']}">
+            <img src="${mediaData['preview_url']}">
         </a>
     </div>`);
 
-    if(description) {
-        toReturn.find('img').attr('title', description).attr('alt', description);
+    if(mediaData['description']) {
+        toReturn.find('img').attr('title', mediaData['description'])
+            .attr('alt', mediaData['description']);
+    }
+
+    if(mediaData['blurhash'] && blurhash) {
+        // It's blurhash time!  Use the metadata to hopefully get width and
+        // height; it'll get resized by style.  But, if the metadata doesn't
+        // exist, go with a default, I guess?  The metadata really should exist.
+        var width = '32';
+        var height = '32';
+
+        const meta = mediaData['meta'];
+
+        if(meta && meta['small'] && meta['small']['width'] 
+            && meta['small']['height']) {
+            width = meta['small']['width'];
+            height = meta['small']['height'];
+        }
+
+        // The blurhash stuff should already have been declared by inclusion
+        // earlier in the containing iframe HTML.  Hopefully.
+        blurhash.decodePromise(mediaData['blurhash'], width, height)
+            .then(blurhashImgData => {
+                // Hi, welcome back from promiseworld.  We're going to load this
+                // as an img rather than a canvas because we don't know the
+                // dimensions of the container for sure at this point.  The user
+                // may be using their own styles, and we're trying to keep this
+                // simple with regards to sizing things correctly on the page.
+                return blurhash.getImageDataAsImageWithOnloadPromise(
+                    blurhashImgData,
+                    width,
+                    height);
+            })
+            .then(img => {
+                // Fiddle with the output a bit.  The blurhash code attaches
+                // width and height properties to the img, but we want styles to
+                // override so we don't need to calculate all this out in JS.
+                $(img).addClass('mw_media_blurhash')
+                    .attr('width', '')
+                    .attr('height', '');
+                toReturn.prepend(img);
+
+                // Add in the spoiler button HERE, now that we know the img
+                // element exists.
+                if(sensitive) {
+                    const button = $('<button class="mw_media_spoiler_button"><span>Sensitive content</span></button>');
+                    button.click((event) => {
+                        button.toggle();
+                        toReturn.find('a').css('visibility', 'visible');
+                    });
+                    toReturn.prepend(button);
+                }
+            });
+    }
+
+    if(sensitive) {
+        // If this is sensitive, mark it hidden (so it still takes up space).
+        toReturn.find('a').css('visibility', 'hidden');
     }
 
     return toReturn;
@@ -547,7 +604,7 @@ function renderAllPosts(statuses) {
                 // TODO: Other media types?  We're just ignoring anything that
                 // isn't an image for now.
                 if(mediaData['type'] === 'image') {
-                    mediaContainer.append(constructImageAttachment(mediaData['url'], mediaData['preview_url'], mediaData['description']));
+                    mediaContainer.append(constructImageAttachment(mediaData, activeData['sensitive']));
                     mediaAdded++;
                 } else {
                     console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
