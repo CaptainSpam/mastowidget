@@ -401,14 +401,14 @@ function constructImageAttachment(mediaData, sensitive) {
                     width,
                     height);
             })
-            .then(img => {
+            .then(blurImg => {
                 // Fiddle with the output a bit.  The blurhash code attaches
                 // width and height properties to the img, but we want styles to
                 // override so we don't need to calculate all this out in JS.
-                $(img).addClass('mw_media_blurhash')
+                $(blurImg).addClass('mw_media_blurhash')
                     .attr('width', '')
                     .attr('height', '');
-                toReturn.prepend(img);
+                toReturn.prepend(blurImg);
 
                 // Add in the spoiler button HERE, now that we know the img
                 // element exists.
@@ -416,9 +416,31 @@ function constructImageAttachment(mediaData, sensitive) {
                     const button = $('<button class="mw_media_spoiler_button"><span>Sensitive content</span></button>');
                     button.click((event) => {
                         button.toggle();
+                        // The blur image needs to go away, too.
+                        $(blurImg).toggle();
                         toReturn.find('a').css('visibility', 'visible');
                     });
                     toReturn.prepend(button);
+                } else {
+                    // If this ISN'T spoilered, we still need a point at which
+                    // the blur goes away, else it'll show up behind images with
+                    // transparencies.
+                    const actualImg = toReturn.find('img');
+                    if(actualImg[0].complete) {
+                        // In THEORY, the blurhash routine should finish up
+                        // well before any network operation that would load the
+                        // actual image.  In practice, however, there's things
+                        // like caches and whatnot that might bring the image up
+                        // first.  If the image is already present before the
+                        // blurhash promises resolve (in a non-spoilered
+                        // situation), just remove the blurhash image from play.
+                        $(blurImg).toggle();
+                    } else {
+                        // If the image hasn't finished loading yet, wait.
+                        toReturn.find('img').on('load', (event) => {
+                            $(blurImg).toggle();
+                        });
+                    }
                 }
             });
     }
