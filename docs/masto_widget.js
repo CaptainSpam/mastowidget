@@ -290,6 +290,7 @@ function constructPost(postData) {
     // A post has some common elements.  Other stuff is added afterward.
     const id = postData['id'];
     const date = new Date(postData['created_at']);
+    const editDate = postData['edited_at'] ? new Date(postData['edited_at']) : date;
 
     var postUrl = '';
     var userALink = undefined;
@@ -302,7 +303,7 @@ function constructPost(postData) {
     }
 
     const toReturn = $(`
-    <div class="mw_entry" id="${id}">
+    <div class="mw_entry" data-id="${id}">
         <div class="mw_entry_userblock">
             <a rel="nofollow noopener noreferrer">
                 <div class="mw_entry_avatar"></div>
@@ -322,7 +323,7 @@ function constructPost(postData) {
             <div class="mw_reply_container"></div>
             <div class="mw_spoiler">
                 <span class="mw_spoiler_text"></span>
-                <button class="mw_spoiler_button">Show more</button>
+                <button class="mw_spoiler_button">Show post</button>
             </div>
             <div class="mw_spoilerable">
                 <div class="mw_entry_content"></div>
@@ -331,11 +332,19 @@ function constructPost(postData) {
         </div>
         <div class="mw_media_container"></div>
         <div class="mw_info_bar"></div>
+        <hr />
     </div>`);
+
+    // Remember the last time this was edited (which may be the time it was
+    // created if edited_at isn't defined); this will be necessary for potential
+    // refreshes later.
+    toReturn.data('lastEdited', editDate.getTime());
+    // Also remember when this was created as a number, mostly so that during
+    // sorting we don't need to keep making new Date objects;
+    toReturn.data('createdAt', date.getTime());
 
     toReturn.find('.mw_entry_userdisplayname').append(userALink);
 
-    var editDate = undefined;
     if(postData['edited_at']) {
         toReturn.find('.mw_entry_edit_date').append(`(last edited ${new Date(postData['edited_at']).toLocaleString()})`);
     } else {
@@ -512,6 +521,240 @@ function setSpinnerVisible(visible) {
     baseElem.find('.mw_spinner').toggle(visible);
 }
 
+function populateElementWithPostData(data, entryElem) {
+    // Wait!  Don't touch that dial!  Is this a boost (a "reblog", as the API
+    // likes to call it)?  If so, the REAL content will be in there.  As far as
+    // I can tell, a reblog won't have any "base" content (that is,
+    // data['content'] will be an empty string), as I don't see anything in the
+    // UI to allow for "boost and also add my own text", and that makes sense
+    // because now that I type that out, that sounds more like just a reply than
+    // a boost.
+    const activeData = data['reblog'] ?? data;
+
+    // Then, toss sanitized content in.
+    const content = sanitizeHtmlToJQueryThingy(activeData['content']);
+    const contentElem = entryElem.find('.mw_entry_content');
+    contentElem.append(content);
+
+    // If there's any emoji in the data, it (hopefully) means anything mentioned
+    // is in use somewhere in the post.
+    replaceEmojisInJQueryThingy(content, activeData['emojis']);
+
+    // Was this a reply?  If so, fill out the reply block.
+    if(activeData['in_reply_to_id']) {
+        const replyElem = entryElem.find('.mw_reply_container');
+
+        // Note that this will have a reply ID but no reply data if there was a
+        // problem fetching said data.  Adapt!
+        if(activeData['in_reply_to_data']) {
+            const replyData = activeData['in_reply_to_data'];
+            const postLink = makeLink(replyData['uri'], 'a post');
+            const userLink = makeLink(replyData['account']['url']);
+            userLink.attr('title', `@${replyData['account']['acct']}`);
+            const userIcon = $('<div class="mw_reply_avatar"></div>');
+            userIcon.css('background-image', 'url("' + replyData['account']['avatar'] + '")')
+                .attr('alt', `User icon for ${replyData['account']['display_name']}`);
+
+            userLink.append(userIcon, replyData['account']['display_name']);
+
+            replyElem.append('In reply to ', postLink, ' by ', userLink, ':');
+        } else {
+            replyElem.text('In reply to something (error fetching parent post?):');
+        }
+
+    } else {
+        entryElem.find('.mw_reply_container').remove();
+    }
+
+    // Now, if there's a spoiler/sensitive flag, handle that, too.  Note that
+    // the API doesn't differentiate between a post being marked sensitive and
+    // *media* being marked sensitive, but the main web UI *does*.  That is, if
+    // any media is marked sensitive in the post, we'll see the sensitive flag
+    // as true.
+    if(activeData['sensitive']) {
+        // Hide the actual entry.
+        const spoilerableElem = entryElem.find('.mw_spoilerable');
+        spoilerableElem.toggle(false);
+
+        if(activeData['spoiler_text']) {
+            // Add in some spoiler text, if applicable.  This can be empty.
+            // This is not HTML, as far as I can tell.
+            const spoilerText = entryElem.find('.mw_spoiler_text');
+            spoilerText.text(activeData['spoiler_text']);
+
+            // Emojify it, too.
+            replaceEmojisInJQueryThingy(spoilerText, activeData['emojis']);
+        }
+
+        // Then, make the button do something.
+        const spoilerButton = entryElem.find('.mw_spoiler_button');
+        spoilerButton.click((event) => {
+            // Specifically, toggle the text...
+            spoilerableElem.toggle();
+
+            // ...and, update the button's text.
+            spoilerButton.text(contentElem.is(':visible') ? 'Hide post' : 'Show post');
+        });
+    } else {
+        // If it's not that sensitive, remove the spoiler block entirely.
+        entryElem.find('.mw_spoiler').remove();
+    }
+
+    // If we've got any media to attach, attach it to the appropriate container.
+    const media = activeData['media_attachments'];
+
+    // Keep track of how much media we've added.  If there's none, or all
+    // the attachments are things we can't handle, remove the media
+    // container from the DOM tree.
+    var mediaAdded = 0;
+    const mediaContainer = entryElem.find('.mw_media_container');
+
+    if(media && media.length > 0) {
+        for(const mediaData of media){
+            // TODO: Other media types?  We're just ignoring anything that
+            // isn't an image for now.
+            if(mediaData['type'] === 'image') {
+                mediaContainer.append(constructImageAttachment(mediaData, activeData['sensitive']));
+                mediaAdded++;
+            } else {
+                console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
+            }
+        };
+    }
+
+    if(mediaAdded === 0) {
+        mediaContainer.remove();
+    }
+
+    // Is there a poll?  Toss that in, too.
+    const pollContainer = entryElem.find('.mw_poll_container');
+    if(activeData['poll']) {
+        const poll = activeData['poll'];
+
+        // Funny, polls don't have titles.  Well, I guess the entire toot
+        // can be considered its title, but still, we can charge right on
+        // ahead with placing the poll options in place.
+        const optionContainer = $('<ul class="mw_poll_option_container"></ul>');
+        for(const option of poll['options']) {
+            // Get the percent.  This COULD be undefined, according to the
+            // API.  I don't quite know how you'd do that from the
+            // interface, but it's apparently possible to be in a situation
+            // where an API user is unaware of the vote counts.
+            const percent = option['votes_count'] !== null
+                ? ((option['votes_count'] / poll['votes_count']) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
+                : undefined;
+
+            const optionElem = $('<li></li>');
+            if(option['votes_count'] !== null) {
+                optionElem.attr('title', `${option['votes_count']} vote${option['votes_count'] !== 1 ? 's' : ''}`);
+            }
+
+            // Build up the title area.
+            const optionTitleArea = $('<div class="mw_poll_option_title"></div>');
+            optionElem.append(optionTitleArea);
+
+            // The percent hovers over to the left.  Stylistically, it
+            // should be a fixed width so all the option names line up.
+            // This becomes an inline-block.
+            optionTitleArea.append($(`<span class="mw_poll_option_percent">${percent !== undefined ? percent + '%' : '??%'}</span>`));
+
+            // Then, add the text right afterward.
+            const optionText = $('<span class="mw_poll_option_text"></span>');
+
+            // If I'm getting this right, options are always plaintext from
+            // an HTML standpoint, but they can have emoji tags.
+            optionText.text(option['title']);
+            replaceEmojisInJQueryThingy(optionText, poll['emojis']);
+            optionTitleArea.append(optionText);
+
+            // Then, put a bar in.
+            // TODO: Mimic Mastodon's interface and add another style to
+            // whatever option is in the lead (or multiples if a tie)?
+            // That'd require another pass to mark which option(s) is(are)
+            // in the lead.
+            const bar = $('<div class="mw_poll_option_bar"></div>');
+            bar.css('width', percent !== undefined ? percent + '%' : '1%');
+            optionElem.append(bar);
+
+            optionContainer.append(optionElem);
+        }
+
+        pollContainer.append(optionContainer);
+    } else {
+        // If there's no poll, just remove the container.
+        pollContainer.remove();
+    }
+
+    // Now, do we have any replies, boosts, or favorites to report?
+    const infoBar = entryElem.find('.mw_info_bar');
+    if(activeData['replies_count'] > 0 || activeData['reblogs_count'] > 0 || activeData['favourites_count'] > 0) {
+        // Yes!  Let's add them in!
+        if(activeData['replies_count'] > 0) {
+            infoBar.append(constructInfoBarIcon('replies', activeData['replies_count']));
+        }
+        if(activeData['reblogs_count'] > 0) {
+            infoBar.append(constructInfoBarIcon('boosts', activeData['reblogs_count']));
+        }
+        if(activeData['favourites_count'] > 0) {
+            infoBar.append(constructInfoBarIcon('favorites', activeData['favourites_count']));
+        }
+    } else {
+        // No!  Remove the infobar itself!
+        infoBar.remove();
+    }
+
+    return entryElem;
+}
+
+function insertPostElementIntoList(entries, newElem) {
+    newDate = newElem.data('createdAt');
+    const entryList = entries.find('.mw_entry');
+
+    if(entryList.length === 0) {
+        // The easiest case: This is the first entry.
+        entries.append(newElem);
+    } else {
+        // Let's sort by createdAt.  In theory the ID should be a good enough
+        // sorting key, but eh, let's not push it.  To that end, let's pull out
+        // our our CS 101 binary search memories and have at it!
+        var startIndex = 0;
+        var endIndex = entryList.length - 1;
+
+        while(startIndex < endIndex) {
+            // Compare the createdAts.  I hope they aren't equal.
+            const curIndex = startIndex + Math.floor((endIndex - startIndex) / 2);
+            if(newDate > $(entryList[curIndex]).data('createdAt')) {
+                // Lower!
+                endIndex = curIndex - 1;
+            } else {
+                // Higher!  Or equal, I guess.
+                startIndex = curIndex + 1;
+            }
+        }
+
+        // And we have a winner!  This entry (startIndex and endIndex are the
+        // same at this point) is the closest already existing, so let's put it
+        // in place!
+        if(newDate < $(entryList[startIndex]).data('createdAt')) {
+            // Added in after this entry (earlier dates are further down).
+            newElem.insertAfter(entryList[startIndex]);
+        } else {
+            // Added in before this entry.
+            newElem.insertBefore(entryList[startIndex]);
+        }
+    }
+}
+
+function removeStrayPosts(entries, idList) {
+    entries.find('.mw_entry').each((index, childElem) => {
+        const elem = $(childElem);
+
+        if(!idList.includes(elem.attr('data-id'))) {
+            elem.remove();
+        }
+    });
+}
+
 function renderUserData(userData) {
     var aElem = makeAuthorLink(userData);
     baseElem.find('.mw_userdisplayname').empty().text('Toots by ').append(aElem);
@@ -526,204 +769,50 @@ function renderAllPosts(statuses) {
         return;
     }
 
-    var entries = baseElem.find('.mw_contentblock');
+    // Gather up all the IDs.  We'll need these to know if anything currently
+    // being displayed needs to be dropped (that is, if we're displaying
+    // something with an ID that isn't in the list), as well as know what IDs we
+    // need to create anew..
+    const idList = statuses.map((data) => data['id']);
 
-    // Later, we'll want to be able to update the content (i.e. adding more
-    // entries after a timeout if more have been added at the source), but for
-    // now, let's always assume a complete wipe.
-    entries.empty();
+    const entries = baseElem.find('.mw_contentblock');
 
     for(const data of statuses) {
-        // Build the skeleton post HTML.
-        const entryElem = constructPost(data);
+        // First off, do we have a post with this ID already?
+        const existingElem = entries.find(`[data-id=${data['id']}]`);
 
-        // Wait!  Don't touch that dial!  Is this a boost (a "reblog", as the
-        // API likes to call it)?  If so, the REAL content will be in there.  As
-        // far as I can tell, a reblog won't have any "base" content (that is,
-        // data['content'] will be an empty string), as I don't see anything in
-        // the UI to allow for "boost and also add my own text", and that makes
-        // sense because now that I type that out, that sounds more like just a
-        // reply than a boost.
-        const activeData = data['reblog'] ?? data;
+        if(existingElem.length === 0) {
+            // This post doesn't exist yet.  Make a new one and toss it in.
+            insertPostElementIntoList(
+                entries, 
+                populateElementWithPostData(
+                    data, 
+                    constructPost(data)));
+        } else if(existingElem.length === 1) {
+            // Just so we don't wind up recreating a whole dang DOM tree for an
+            // element if we don't need to, check to see if the post has been
+            // edited since the element's existed.
+            const postEditTime = new Date(data['edited_at'] ?? data['created_at']).getTime();
 
-        // Then, toss sanitized content in.
-        const content = sanitizeHtmlToJQueryThingy(activeData['content']);
-        const contentElem = entryElem.find('.mw_entry_content');
-        contentElem.append(content);
-
-        // If there's any emoji in the data, it (hopefully) means anything
-        // mentioned is in use somewhere in the post.
-        replaceEmojisInJQueryThingy(content, activeData['emojis']);
-
-        // Was this a reply?  If so, fill out the reply block.
-        if(activeData['in_reply_to_id']) {
-            const replyElem = entryElem.find('.mw_reply_container');
-
-            // Note that this will have a reply ID but no reply data if there
-            // was a problem fetching said data.  Adapt!
-            if(activeData['in_reply_to_data']) {
-                const replyData = activeData['in_reply_to_data'];
-                const postLink = makeLink(replyData['uri'], 'a post');
-                const userLink = makeLink(replyData['account']['url']);
-                userLink.attr('title', `@${replyData['account']['acct']}`);
-                const userIcon = $('<div class="mw_reply_avatar"></div>');
-                userIcon.css('background-image', 'url("' + replyData['account']['avatar'] + '")')
-                    .attr('alt', `User icon for ${replyData['account']['display_name']}`);
-
-                userLink.append(userIcon, replyData['account']['display_name']);
-
-                replyElem.append('In reply to ', postLink, ' by ', userLink, ':');
-            } else {
-                replyElem.text('In reply to something (error fetching parent post?):');
+            // It seems like it'd make more sense to just check if postEditTime
+            // is GREATER than existingElem's data, rather than not-equals like
+            // this.  But, if the time changed in ANY way, we'll want to update
+            // regardless.
+            if(postEditTime !== existingElem.data('lastEdited')) {
+                // It's different!  Replace this with new data!
+                existingElem.replaceWith(populateElementWithPostData(data, constructPost(data)));
             }
 
+            // Otherwise, ignore it entirely.  It's the same.
         } else {
-            entryElem.find('.mw_reply_container').remove();
+            console.warn(`There are multiple existing elements for a toot with an ID of ${data['id']}!  This shouldn't happen!`);
         }
-
-        // Now, if there's a spoiler/sensitive flag, handle that, too.
-        if(activeData['sensitive']) {
-            // Hide the actual entry.
-            const spoilerableElem = entryElem.find('.mw_spoilerable');
-            spoilerableElem.toggle(false);
-
-            if(activeData['spoiler_text']) {
-                // Add in some spoiler text, if applicable.  This can be empty.
-                // This is not HTML, as far as I can tell.
-                const spoilerText = entryElem.find('.mw_spoiler_text');
-                spoilerText.text(activeData['spoiler_text']);
-
-                // Emojify it, too.
-                replaceEmojisInJQueryThingy(spoilerText, activeData['emojis']);
-            }
-
-            // Then, make the button do something.
-            const spoilerButton = entryElem.find('.mw_spoiler_button');
-            spoilerButton.click((event) => {
-                // Specifically, toggle the text...
-                spoilerableElem.toggle();
-
-                // ...and, update the button's text.
-                spoilerButton.text(contentElem.is(':visible') ? 'Show less' : 'Show more');
-            });
-        } else {
-            // If it's not that sensitive, remove the spoiler block entirely.
-            entryElem.find('.mw_spoiler').remove();
-        }
-
-        // If we've got any media to attach, attach it to the appropriate
-        // container.
-        const media = activeData['media_attachments'];
-
-        // Keep track of how much media we've added.  If there's none, or all
-        // the attachments are things we can't handle, remove the media
-        // container from the DOM tree.
-        var mediaAdded = 0;
-        const mediaContainer = entryElem.find('.mw_media_container');
-
-        if(media && media.length > 0) {
-            for(const mediaData of media){
-                // TODO: Other media types?  We're just ignoring anything that
-                // isn't an image for now.
-                if(mediaData['type'] === 'image') {
-                    mediaContainer.append(constructImageAttachment(mediaData, activeData['sensitive']));
-                    mediaAdded++;
-                } else {
-                    console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
-                }
-            };
-        }
-
-        if(mediaAdded === 0) {
-            mediaContainer.remove();
-        }
-
-        // Is there a poll?  Toss that in, too.
-        const pollContainer = entryElem.find('.mw_poll_container');
-        if(activeData['poll']) {
-            const poll = activeData['poll'];
-
-            // Funny, polls don't have titles.  Well, I guess the entire toot
-            // can be considered its title, but still, we can charge right on
-            // ahead with placing the poll options in place.
-            const optionContainer = $('<ul class="mw_poll_option_container"></ul>');
-            for(const option of poll['options']) {
-                // Get the percent.  This COULD be undefined, according to the
-                // API.  I don't quite know how you'd do that from the
-                // interface, but it's apparently possible to be in a situation
-                // where an API user is unaware of the vote counts.
-                const percent = option['votes_count'] !== null
-                    ? ((option['votes_count'] / poll['votes_count']) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
-                    : undefined;
-
-                const optionElem = $('<li></li>');
-                if(option['votes_count'] !== null) {
-                    optionElem.attr('title', `${option['votes_count']} vote${option['votes_count'] !== 1 ? 's' : ''}`);
-                }
-
-                // Build up the title area.
-                const optionTitleArea = $('<div class="mw_poll_option_title"></div>');
-                optionElem.append(optionTitleArea);
-
-                // The percent hovers over to the left.  Stylistically, it
-                // should be a fixed width so all the option names line up.
-                // This becomes an inline-block.
-                optionTitleArea.append($(`<span class="mw_poll_option_percent">${percent !== undefined ? percent + '%' : '??%'}</span>`));
-
-                // Then, add the text right afterward.
-                const optionText = $('<span class="mw_poll_option_text"></span>');
-
-                // If I'm getting this right, options are always plaintext from
-                // an HTML standpoint, but they can have emoji tags.
-                optionText.text(option['title']);
-                replaceEmojisInJQueryThingy(optionText, poll['emojis']);
-                optionTitleArea.append(optionText);
-
-                // Then, put a bar in.
-                // TODO: Mimic Mastodon's interface and add another style to
-                // whatever option is in the lead (or multiples if a tie)?
-                // That'd require another pass to mark which option(s) is(are)
-                // in the lead.
-                const bar = $('<div class="mw_poll_option_bar"></div>');
-                bar.css('width', percent !== undefined ? percent + '%' : '1%');
-                optionElem.append(bar);
-
-                optionContainer.append(optionElem);
-            }
-
-            pollContainer.append(optionContainer);
-        } else {
-            // If there's no poll, just remove the container.
-            pollContainer.remove();
-        }
-
-        // Now, do we have any replies, boosts, or favorites to report?
-        const infoBar = entryElem.find('.mw_info_bar');
-        if(activeData['replies_count'] > 0 || activeData['reblogs_count'] > 0 || activeData['favourites_count'] > 0) {
-            // Yes!  Let's add them in!
-            if(activeData['replies_count'] > 0) {
-                infoBar.append(constructInfoBarIcon('replies', activeData['replies_count']));
-            }
-            if(activeData['reblogs_count'] > 0) {
-                infoBar.append(constructInfoBarIcon('boosts', activeData['reblogs_count']));
-            }
-            if(activeData['favourites_count'] > 0) {
-                infoBar.append(constructInfoBarIcon('favorites', activeData['favourites_count']));
-            }
-        } else {
-            // No!  Remove the infobar itself!
-            infoBar.remove();
-        }
-
-        // Finally, toss the block on to the end!
-        entries.append(entryElem);
-
-        // And add a separator.
-        entries.append($(document.createElement('hr')));
     };
 
-    // And knock out that last separator.
-    entries.find('hr').last().remove();
+    // Now that we've got things added, let's consider removing things.  Any
+    // toot that's on the page but doesn't exist in what we just fetched needs
+    // to go away.
+    removeStrayPosts(entries, idList);
 }
 
 function renderData(userData, statuses) {
