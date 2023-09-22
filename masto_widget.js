@@ -446,7 +446,7 @@ function constructImageAttachment(mediaData, sensitive) {
                         $(blurImg).toggle();
                     } else {
                         // If the image hasn't finished loading yet, wait.
-                        toReturn.find('img').on('load', (event) => {
+                        actualImg.on('load', (event) => {
                             $(blurImg).toggle();
                         });
                     }
@@ -457,6 +457,65 @@ function constructImageAttachment(mediaData, sensitive) {
     if(sensitive) {
         // If this is sensitive, mark it hidden (so it still takes up space).
         toReturn.find('a').css('visibility', 'hidden');
+    }
+
+    return toReturn;
+}
+
+function constructVideoAttachment(mediaData, sensitive) {
+    const toReturn = $(`
+    <div class="mw_media_item">
+        <video controls src="${mediaData['url']}" poster="${mediaData['preview_url']}">
+            <a rel="nofollow noopener noreferrer" href="${mediaData['url']}">Open video</a>
+        </video>
+    </div>`);
+
+    if(mediaData['description']) {
+        toReturn.find('video').attr('title', mediaData['description'])
+            .attr('alt', mediaData['description']);
+    }
+
+    // The blurhash part only comes into play if this is sensitive.  The video
+    // element doesn't have the same sort of rendering complete events and
+    // properties that img does.
+    if(mediaData['blurhash'] && blurhash && sensitive) {
+        var width = '32';
+        var height = '32';
+
+        const meta = mediaData['meta'];
+
+        if(meta && meta['small'] && meta['small']['width']
+            && meta['small']['height']) {
+            width = meta['small']['width'];
+            height = meta['small']['height'];
+        }
+
+        blurhash.decodePromise(mediaData['blurhash'], width, height)
+            .then(blurhashImgData => {
+                return blurhash.getImageDataAsImageWithOnloadPromise(
+                    blurhashImgData,
+                    width,
+                    height);
+            })
+            .then(blurImg => {
+                $(blurImg).addClass('mw_media_blurhash')
+                    .attr('width', '')
+                    .attr('height', '');
+                toReturn.prepend(blurImg);
+
+                const button = $('<button class="mw_media_spoiler_button"><span>Sensitive content</span></button>');
+                button.click((event) => {
+                    button.toggle();
+                    $(blurImg).toggle();
+                    toReturn.find('video').css('visibility', 'visible');
+                });
+                toReturn.prepend(button);
+            });
+    }
+
+    if(sensitive) {
+        // If sensitive, hide it.
+        toReturn.find('video').css('visibility', 'hidden');
     }
 
     return toReturn;
@@ -611,10 +670,12 @@ function populateElementWithPostData(data, entryElem) {
 
     if(media && media.length > 0) {
         for(const mediaData of media){
-            // TODO: Other media types?  We're just ignoring anything that
-            // isn't an image for now.
+            // TODO: Other media types are en route...
             if(mediaData['type'] === 'image') {
                 mediaContainer.append(constructImageAttachment(mediaData, activeData['sensitive']));
+                mediaAdded++;
+            } else if(mediaData['type'] === 'video') {
+                mediaContainer.append(constructVideoAttachment(mediaData, activeData['sensitive']));
                 mediaAdded++;
             } else {
                 console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
