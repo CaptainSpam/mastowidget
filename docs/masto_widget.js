@@ -1080,7 +1080,7 @@ function fetchData() {
         });
 }
 
-$(document).ready(() => {
+$(() => {
     // As this is an iframe, we want the base to be the overall body element.
     baseElem = $('.mw_body');
     constructPage();
