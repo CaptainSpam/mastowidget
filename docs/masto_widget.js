@@ -521,6 +521,38 @@ function constructVideoAttachment(mediaData, sensitive) {
     return toReturn;
 }
 
+function constructAudioAttachment(mediaData, sensitive) {
+    const toReturn = $(`
+    <div class="mw_media_item">
+        <audio controls src="${mediaData['url']}">
+            <a rel="nofollow noopener noreferrer" href="${mediaData['url']}">Open audio</a>
+        </audio>
+    </div>`);
+
+    if(mediaData['description']) {
+        toReturn.find('audio').attr('title', mediaData['description'])
+            .attr('alt', mediaData['description']);
+    }
+
+    // Now here's the tricky part: We don't have anything to blur for audio.  I
+    // mean, it's audio.  That's sort of to be expected.  So for the sensitive
+    // bits, let's just make it a plain ol' button.
+    if(sensitive) {
+        const button = $('<button class="mw_media_spoiler_button_audio"><span>Sensitive content</span></button>');
+        const actualAudio = toReturn.find('audio');
+
+        actualAudio.toggle(false);
+        button.click((event) => {
+            button.toggle();
+            actualAudio.toggle(true);
+        });
+
+        toReturn.prepend(button);
+    }
+
+    return toReturn;
+}
+
 function constructInfoBarIcon(type, count) {
     var title = '';
     if(type === 'replies') {
@@ -676,6 +708,9 @@ function populateElementWithPostData(data, entryElem) {
                 mediaAdded++;
             } else if(mediaData['type'] === 'video') {
                 mediaContainer.append(constructVideoAttachment(mediaData, activeData['sensitive']));
+                mediaAdded++;
+            } else if(mediaData['type'] === 'audio') {
+                mediaContainer.append(constructAudioAttachment(mediaData, activeData['sensitive']));
                 mediaAdded++;
             } else {
                 console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);

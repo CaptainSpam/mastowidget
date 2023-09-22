@@ -264,6 +264,12 @@ a:active
     max-width:calc(100% - 10px);
 }
 
+.mw_media_item audio
+{
+    /* Audio really has no intrinsic size, so max-width isn't what we want. */
+    width:calc(100% - 10px);
+}
+
 .mw_media_item img
 {
     border: 2px solid black;
@@ -275,7 +281,8 @@ a:active
 }
 
 .mw_media_item a,
-.mw_media_item video
+.mw_media_item video,
+.mw_media_item audio
 {
     position: relative;
     z-index: 1;
@@ -304,7 +311,18 @@ a:active
     cursor: pointer;
 }
 
-.mw_media_spoiler_button span
+.mw_media_spoiler_button_audio
+{
+    background-color: transparent;
+    border: 2px solid transparent;
+    width: calc(100% - 10px);
+    z-index: 2;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.mw_media_spoiler_button span,
+.mw_media_spoiler_button_audio span
 {
     background-color: rgba(0,0,0,0.3);
     border-radius: 8px;
@@ -312,12 +330,14 @@ a:active
     padding: 8px 12px;
 }
 
-.mw_media_spoiler_button:hover span
+.mw_media_spoiler_button:hover span,
+.mw_media_spoiler_button_audio:hover span
 {
     background-color: rgba(0,0,0,0.6);
 }
 
-.mw_media_spoiler_button:active span
+.mw_media_spoiler_button:active span,
+.mw_media_spoiler_button_audio:active span
 {
     background-color: rgba(0,0,0,0.4);
 }
