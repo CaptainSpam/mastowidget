@@ -553,6 +553,33 @@ function constructAudioAttachment(mediaData, sensitive) {
     return toReturn;
 }
 
+function updateInfoBar(data, entryElem) {
+    const infoBar = entryElem.find('.mw_info_bar');
+
+    // First, scrub anything in the bar.
+    infoBar.empty();
+
+    // Then, see if there's any replies, boosts, or favorites to report.
+    if(data['replies_count'] > 0 || data['reblogs_count'] > 0 || data['favourites_count'] > 0) {
+        // There are!  Let's add them in!  First, make sure the infobar is
+        // actually visible.
+        infoBar.toggle(true);
+        if(data['replies_count'] > 0) {
+            infoBar.append(constructInfoBarIcon('replies', data['replies_count']));
+        }
+        if(data['reblogs_count'] > 0) {
+            infoBar.append(constructInfoBarIcon('boosts', data['reblogs_count']));
+        }
+        if(data['favourites_count'] > 0) {
+            infoBar.append(constructInfoBarIcon('favorites', data['favourites_count']));
+        }
+    } else {
+        // No!  Hide the infobar!
+        infoBar.toggle(false);
+    }
+
+}
+
 function constructInfoBarIcon(type, count) {
     var title = '';
     if(type === 'replies') {
@@ -781,24 +808,7 @@ function populateElementWithPostData(data, entryElem) {
         pollContainer.remove();
     }
 
-    // Now, do we have any replies, boosts, or favorites to report?
-    const infoBar = entryElem.find('.mw_info_bar');
-    if(activeData['replies_count'] > 0 || activeData['reblogs_count'] > 0 || activeData['favourites_count'] > 0) {
-        // Yes!  Let's add them in!
-        if(activeData['replies_count'] > 0) {
-            infoBar.append(constructInfoBarIcon('replies', activeData['replies_count']));
-        }
-        if(activeData['reblogs_count'] > 0) {
-            infoBar.append(constructInfoBarIcon('boosts', activeData['reblogs_count']));
-        }
-        if(activeData['favourites_count'] > 0) {
-            infoBar.append(constructInfoBarIcon('favorites', activeData['favourites_count']));
-        }
-    } else {
-        // No!  Remove the infobar itself!
-        infoBar.remove();
-    }
-
+    // The infobar is handled elsewhere; see renderAllPosts for details.
     return entryElem;
 }
 
@@ -879,11 +889,11 @@ function renderAllPosts(statuses) {
 
         if(existingElem.length === 0) {
             // This post doesn't exist yet.  Make a new one and toss it in.
+            const newElem = constructPost(data);
             insertPostElementIntoList(
                 entries, 
-                populateElementWithPostData(
-                    data, 
-                    constructPost(data)));
+                populateElementWithPostData(data, newElem));
+            updateInfoBar(data, newElem);
         } else if(existingElem.length === 1) {
             // Just so we don't wind up recreating a whole dang DOM tree for an
             // element if we don't need to, check to see if the post has been
@@ -896,12 +906,17 @@ function renderAllPosts(statuses) {
             // regardless.
             if(postEditTime !== existingElem.data('lastEdited')) {
                 // It's different!  Replace this with new data!
-                existingElem.replaceWith(populateElementWithPostData(data, constructPost(data)));
+                const updatedElem = constructPost(data);
+                existingElem.replaceWith(populateElementWithPostData(data, updatedElem));
+                updateInfoBar(data, updatedElem);
+            } else {
+                // Otherwise, just update the info bar.  New counts for
+                // replies/boosts/favorites don't change edited_at, so we need
+                // to update it manually.
+                updateInfoBar(data, existingElem);
             }
-
-            // Otherwise, ignore it entirely.  It's the same.
         } else {
-            console.warn(`There are multiple existing elements for a toot with an ID of ${data['id']}!  This shouldn't happen!`);
+            console.warn(`There are multiple existing elements (${existingElem.length}) for a toot with an ID of ${data['id']}!  This shouldn't happen!`);
         }
     };
 
