@@ -475,6 +475,14 @@ function constructVideoAttachment(mediaData, sensitive) {
             .attr('alt', mediaData['description']);
     }
 
+    if(mediaData['type'] === 'gifv') {
+        // A gifv!  The video should, therefore, loop and start out muted.  We
+        // would also make it auto-play, except Mastowidget lives in an iframe,
+        // and things get very dicey with autoplay permissions in iframes, for
+        // reasonably good reasons.
+        toReturn.find('video').attr('muted', true).attr('loop', true);
+    }
+
     // The blurhash part only comes into play if this is sensitive.  The video
     // element doesn't have the same sort of rendering complete events and
     // properties that img does.
@@ -729,18 +737,37 @@ function populateElementWithPostData(data, entryElem) {
 
     if(media && media.length > 0) {
         for(const mediaData of media){
-            // TODO: Other media types are en route...
-            if(mediaData['type'] === 'image') {
-                mediaContainer.append(constructImageAttachment(mediaData, activeData['sensitive']));
-                mediaAdded++;
-            } else if(mediaData['type'] === 'video') {
-                mediaContainer.append(constructVideoAttachment(mediaData, activeData['sensitive']));
-                mediaAdded++;
-            } else if(mediaData['type'] === 'audio') {
-                mediaContainer.append(constructAudioAttachment(mediaData, activeData['sensitive']));
-                mediaAdded++;
-            } else {
-                console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
+            switch(mediaData['type']) {
+                case 'image':
+                    mediaContainer.append(
+                        constructImageAttachment(
+                            mediaData, 
+                            activeData['sensitive']));
+                    mediaAdded++;
+                    break;
+                case 'video':
+                case 'gifv':
+                    // "gifv", in Mastodon, seems to refer to any video that
+                    // doesn't have an audio track.  Also, Mastodon converts
+                    // "real" animated GIFs into MP4s on the backend.  As such,
+                    // both video and gifv types are handled as video 
+                    // attachments, with minor differences covered when we make
+                    // the element.
+                    mediaContainer.append(
+                        constructVideoAttachment(
+                            mediaData,
+                            activeData['sensitive']));
+                    mediaAdded++;
+                    break;
+                case 'audio':
+                    mediaContainer.append(
+                        constructAudioAttachment(
+                            mediaData,
+                            activeData['sensitive']));
+                    mediaAdded++;
+                    break;
+                default:
+                    console.warn(`Don't know how to handle media of type '${mediaData['type']}', ignoring...`);
             }
         };
     }
