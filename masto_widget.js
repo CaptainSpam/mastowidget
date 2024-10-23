@@ -784,19 +784,27 @@ function populateElementWithPostData(data, entryElem) {
         // Funny, polls don't have titles.  Well, I guess the entire toot
         // can be considered its title, but still, we can charge right on
         // ahead with placing the poll options in place.
+        const totalVotes = poll['votes_count'];
+
         const optionContainer = $('<ul class="mw_poll_option_container"></ul>');
         for(const option of poll['options']) {
             // Get the percent.  This COULD be undefined, according to the
             // API.  I don't quite know how you'd do that from the
             // interface, but it's apparently possible to be in a situation
             // where an API user is unaware of the vote counts.
-            const percent = option['votes_count'] !== null
-                ? ((option['votes_count'] / poll['votes_count']) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
-                : undefined;
+            const votesCount = option['votes_count'];
+
+            // If there's no votes yet (or totalVotes is somehow just falsy),
+            // just count everything as 0% to avoid NaNs.
+            const percent = !totalVotes
+                ? 0
+                : votesCount !== null
+                    ? ((votesCount / totalVotes) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
+                    : undefined;
 
             const optionElem = $('<li></li>');
-            if(option['votes_count'] !== null) {
-                optionElem.attr('title', `${option['votes_count']} vote${option['votes_count'] !== 1 ? 's' : ''}`);
+            if(votesCount !== null) {
+                optionElem.attr('title', `${votesCount} vote${votesCount !== 1 ? 's' : ''}`);
             }
 
             // Build up the title area.
