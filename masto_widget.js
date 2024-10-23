@@ -561,6 +561,80 @@ function constructAudioAttachment(mediaData, sensitive) {
     return toReturn;
 }
 
+function updatePoll(data, entryElem) {
+    const pollContainer = entryElem.find('.mw_poll_container');
+    if(data['poll']) {
+        // Clear out the poll container first, just in case we're re-using it.
+        pollContainer.empty();
+
+        const poll = data['poll'];
+
+        // Funny, polls don't have titles.  Well, I guess the entire toot
+        // can be considered its title, but still, we can charge right on
+        // ahead with placing the poll options in place.
+        const totalVotes = poll['votes_count'];
+
+        const optionContainer = $('<ul class="mw_poll_option_container"></ul>');
+        for(const option of poll['options']) {
+            // Get the percent.  This COULD be undefined, according to the
+            // API.  I don't quite know how you'd do that from the
+            // interface, but it's apparently possible to be in a situation
+            // where an API user is unaware of the vote counts.
+            const votesCount = option['votes_count'];
+
+            // If there's no votes yet (or totalVotes is somehow just falsy),
+            // just count everything as 0% to avoid NaNs.
+            const percent = !totalVotes
+                ? 0
+                : votesCount !== null
+                    ? ((votesCount / totalVotes) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
+                    : undefined;
+
+            const optionElem = $('<li></li>');
+            if(votesCount !== null) {
+                optionElem.attr('title', `${votesCount} vote${votesCount !== 1 ? 's' : ''}`);
+            }
+
+            // Build up the title area.
+            const optionTitleArea = $('<div class="mw_poll_option_title"></div>');
+            optionElem.append(optionTitleArea);
+
+            // The percent hovers over to the left.  Stylistically, it
+            // should be a fixed width so all the option names line up.
+            // This becomes an inline-block.
+            optionTitleArea.append($(`<span class="mw_poll_option_percent">${percent !== undefined ? percent + '%' : '??%'}</span>`));
+
+            // Then, add the text right afterward.
+            const optionText = $('<span class="mw_poll_option_text"></span>');
+
+            // If I'm getting this right, options are always plaintext from
+            // an HTML standpoint, but they can have emoji tags.
+            optionText.text(option['title']);
+            replaceEmojisInJQueryThingy(optionText, poll['emojis']);
+            optionTitleArea.append(optionText);
+
+            // Then, put a bar in.
+            // TODO: Mimic Mastodon's interface and add another style to
+            // whatever option is in the lead (or multiples if a tie)?
+            // That'd require another pass to mark which option(s) is(are)
+            // in the lead.
+            const bar = $('<div class="mw_poll_option_bar"></div>');
+            bar.css('width', percent !== undefined ? percent + '%' : '1%');
+            optionElem.append(bar);
+
+            optionContainer.append(optionElem);
+        }
+
+        pollContainer.append(optionContainer);
+    } else {
+        // If there's no poll, just remove the container.  If this post is
+        // edited later to include a poll, we'll go through the full rebuild
+        // before we get here as a consequence of the edit date changing, so we
+        // don't need to worry about the container not being there next time.
+        pollContainer.remove();
+    }
+}
+
 function updateInfoBar(data, entryElem) {
     const infoBar = entryElem.find('.mw_info_bar');
 
@@ -776,74 +850,8 @@ function populateElementWithPostData(data, entryElem) {
         mediaContainer.remove();
     }
 
-    // Is there a poll?  Toss that in, too.
-    const pollContainer = entryElem.find('.mw_poll_container');
-    if(activeData['poll']) {
-        const poll = activeData['poll'];
-
-        // Funny, polls don't have titles.  Well, I guess the entire toot
-        // can be considered its title, but still, we can charge right on
-        // ahead with placing the poll options in place.
-        const totalVotes = poll['votes_count'];
-
-        const optionContainer = $('<ul class="mw_poll_option_container"></ul>');
-        for(const option of poll['options']) {
-            // Get the percent.  This COULD be undefined, according to the
-            // API.  I don't quite know how you'd do that from the
-            // interface, but it's apparently possible to be in a situation
-            // where an API user is unaware of the vote counts.
-            const votesCount = option['votes_count'];
-
-            // If there's no votes yet (or totalVotes is somehow just falsy),
-            // just count everything as 0% to avoid NaNs.
-            const percent = !totalVotes
-                ? 0
-                : votesCount !== null
-                    ? ((votesCount / totalVotes) * 100).toLocaleString(undefined, {maximumFractionDigits:2})
-                    : undefined;
-
-            const optionElem = $('<li></li>');
-            if(votesCount !== null) {
-                optionElem.attr('title', `${votesCount} vote${votesCount !== 1 ? 's' : ''}`);
-            }
-
-            // Build up the title area.
-            const optionTitleArea = $('<div class="mw_poll_option_title"></div>');
-            optionElem.append(optionTitleArea);
-
-            // The percent hovers over to the left.  Stylistically, it
-            // should be a fixed width so all the option names line up.
-            // This becomes an inline-block.
-            optionTitleArea.append($(`<span class="mw_poll_option_percent">${percent !== undefined ? percent + '%' : '??%'}</span>`));
-
-            // Then, add the text right afterward.
-            const optionText = $('<span class="mw_poll_option_text"></span>');
-
-            // If I'm getting this right, options are always plaintext from
-            // an HTML standpoint, but they can have emoji tags.
-            optionText.text(option['title']);
-            replaceEmojisInJQueryThingy(optionText, poll['emojis']);
-            optionTitleArea.append(optionText);
-
-            // Then, put a bar in.
-            // TODO: Mimic Mastodon's interface and add another style to
-            // whatever option is in the lead (or multiples if a tie)?
-            // That'd require another pass to mark which option(s) is(are)
-            // in the lead.
-            const bar = $('<div class="mw_poll_option_bar"></div>');
-            bar.css('width', percent !== undefined ? percent + '%' : '1%');
-            optionElem.append(bar);
-
-            optionContainer.append(optionElem);
-        }
-
-        pollContainer.append(optionContainer);
-    } else {
-        // If there's no poll, just remove the container.
-        pollContainer.remove();
-    }
-
-    // The infobar is handled elsewhere; see renderAllPosts for details.
+    // The infobar and (potentially) poll are handled elsewhere; see
+    // renderAllPosts for details.
     return entryElem;
 }
 
@@ -928,6 +936,7 @@ function renderAllPosts(statuses) {
             insertPostElementIntoList(
                 entries, 
                 populateElementWithPostData(data, newElem));
+            updatePoll(data, newElem);
             updateInfoBar(data, newElem);
         } else if(existingElem.length === 1) {
             // Just so we don't wind up recreating a whole dang DOM tree for an
@@ -945,9 +954,11 @@ function renderAllPosts(statuses) {
                 existingElem.replaceWith(populateElementWithPostData(data, updatedElem));
                 updateInfoBar(data, updatedElem);
             } else {
-                // Otherwise, just update the info bar.  New counts for
-                // replies/boosts/favorites don't change edited_at, so we need
-                // to update it manually.
+                // If the post already existed but the edit time hasn't changed,
+                // there might be a poll that needs updating, or there might be
+                // changes to the info bar (replies/boots/favorites).  Neither
+                // of those change edited_at.  So, update those if needed.
+                updatePoll(data, existingElem);
                 updateInfoBar(data, existingElem);
             }
         } else {
